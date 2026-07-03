@@ -199,7 +199,7 @@
           <label class="f"><span>Email</span><input type="email" data-f="contact.email" placeholder="name@co.com"></label>
           <label class="f"><span>Phone</span><input type="tel" data-f="contact.phone" placeholder="406-581-1243"></label>
         </div>
-        <label class="f"><span>Company</span><input type="text" data-f="contact.company" placeholder="Empire Building Materials"></label>
+        <label class="f"><span>Company</span><input type="text" data-f="contact.company" placeholder="Sample Building Supply"></label>
         <label class="f"><span>Company type</span>
           <div class="chips" data-chips="contact.companyType" data-single="1">
             <span class="chip" data-v="distributor">Distributor</span>
@@ -918,8 +918,8 @@ document.getElementById("copyBtn").onclick=()=>{
 (function seed(){
   // form
   const set=(p,v)=>setPath(state,p,v);
-  set("contact.name","Mike Fauth"); set("contact.email","mikef@empireinc.com");
-  set("contact.phone","406-581-1243"); set("contact.company","Empire Building Materials");
+  set("contact.name","Mike Fauth"); set("contact.email","mikef@example.com");
+  set("contact.phone","406-581-1243"); set("contact.company","Sample Building Supply");
   set("contact.companyType","distributor");
   set("project.name","Fauth deck"); set("project.address","2280 Saddleback Dr");
   set("project.city","Laurel"); set("project.state","MT"); set("project.zip","59044");
