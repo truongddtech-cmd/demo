@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TimberTech Takeoff — Demo Suite</title>
+<style>
+  :root{
+    /* ---- neutral shell ---- */
+    --ink:#17242a;            /* slate-ink text */
+    --shell:#20323a;          /* dark header band */
+    --shell-2:#2b424c;
+    --bg:#eef1f0;             /* cool neutral page */
+    --card:#ffffff;
+    --line:#dbe1e0;
+    --muted:#63757a;
+    --dim:#8a999d;
+
+    /* ---- deck demo accent (teal / graph-paper) ---- */
+    --deck:#13474D;
+    --deck-bright:#2BB9A3;
+    --deck-wash:#ecf7f4;
+
+    /* ---- stair demo accent (navy / red) ---- */
+    --stair:#1F3A5F;
+    --stair-accent:#C0392B;
+    --stair-wash:#eef3f9;
+
+    --sans:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;
+    --mono:'JetBrains Mono','SF Mono',ui-monospace,Consolas,monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;}
+  body{
+    font-family:var(--sans);color:var(--ink);background:var(--bg);
+    font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;
+    min-height:100vh;display:flex;flex-direction:column;
+  }
+
+  /* ---------- header band ---------- */
+  header{
+    background:linear-gradient(135deg,var(--shell),var(--shell-2));
+    color:#eaf1f0;padding:34px 24px 40px;
+    border-bottom:3px solid var(--deck-bright);
+  }
+  .head-inner{max-width:960px;margin:0 auto;}
+  .eyebrow{
+    font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--deck-bright);font-weight:700;margin:0 0 10px;
+  }
+  header h1{
+    margin:0;font-size:30px;font-weight:700;letter-spacing:-.01em;line-height:1.15;
+  }
+  header .blurb{
+    margin:14px 0 0;max-width:640px;font-size:14.5px;color:#b8c9c8;line-height:1.6;
+  }
+
+  /* ---------- cards ---------- */
+  main{flex:1;width:100%;max-width:960px;margin:0 auto;padding:34px 24px 20px;}
+  .lede{
+    font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--muted);font-weight:700;margin:0 0 16px;
+    display:flex;align-items:center;gap:10px;
+  }
+  .lede::after{content:"";flex:1;height:1px;background:var(--line);}
+  .grid{
+    display:grid;grid-template-columns:repeat(2,1fr);gap:20px;
+  }
+  @media(max-width:720px){.grid{grid-template-columns:1fr;}}
+
+  .card{
+    display:flex;flex-direction:column;
+    background:var(--card);border:1px solid var(--line);border-radius:12px;
+    text-decoration:none;color:inherit;overflow:hidden;
+    box-shadow:0 1px 2px rgba(23,36,42,.04);
+    transition:transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+  }
+  .card:hover{
+    transform:translateY(-3px);
+    box-shadow:0 14px 30px rgba(23,36,42,.14);
+  }
+  .card:focus-visible{outline:3px solid var(--deck-bright);outline-offset:2px;}
+  .card .accent{height:5px;width:100%;}
+
+  /* thumbnail preview area */
+  .thumb{
+    height:132px;display:flex;align-items:center;justify-content:center;
+    border-bottom:1px solid var(--line);
+  }
+  .thumb svg{width:100%;height:100%;display:block;}
+
+  .body{padding:18px 20px 20px;display:flex;flex-direction:column;flex:1;}
+  .card .titlerow{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
+  .card h2{margin:0;font-size:17px;font-weight:700;letter-spacing:-.01em;}
+  .badge{
+    font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;
+    padding:3px 8px;border-radius:99px;white-space:nowrap;
+  }
+  .card p.desc{margin:4px 0 0;font-size:13px;color:var(--muted);line-height:1.55;flex:1;}
+  .card .foot{
+    display:flex;align-items:center;justify-content:space-between;
+    margin-top:18px;padding-top:14px;border-top:1px dashed var(--line);
+  }
+  .card .fname{font-family:var(--mono);font-size:11px;color:var(--dim);}
+  .open{
+    display:inline-flex;align-items:center;gap:7px;
+    font-size:13px;font-weight:700;
+  }
+  .open .arr{transition:transform .16s ease;}
+  .card:hover .open .arr{transform:translateX(4px);}
+
+  /* ---- deck card theming ---- */
+  .card.deck .accent{background:linear-gradient(90deg,var(--deck),var(--deck-bright));}
+  .card.deck .thumb{background:var(--deck-wash);}
+  .card.deck .badge{background:var(--deck-wash);color:var(--deck);}
+  .card.deck .open{color:var(--deck);}
+  .card.deck:focus-visible{outline-color:var(--deck-bright);}
+
+  /* ---- stair card theming ---- */
+  .card.stair .accent{background:linear-gradient(90deg,var(--stair),var(--stair-accent));}
+  .card.stair .thumb{background:var(--stair-wash);}
+  .card.stair .badge{background:var(--stair-wash);color:var(--stair);}
+  .card.stair .open{color:var(--stair);}
+  .card.stair:focus-visible{outline-color:var(--stair);}
+
+  .newtab{
+    display:inline-block;margin-left:6px;font-size:10px;color:var(--dim);
+    font-weight:600;letter-spacing:.04em;vertical-align:middle;
+  }
+
+  /* ---------- footer ---------- */
+  footer{
+    max-width:960px;margin:0 auto;width:100%;
+    padding:22px 24px 40px;color:var(--dim);font-size:11.5px;line-height:1.6;
+  }
+  footer .rule{height:1px;background:var(--line);margin-bottom:16px;}
+  footer b{color:var(--muted);font-weight:600;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="head-inner">
+    <p class="eyebrow">TimberTech Aluminum Framing</p>
+    <h1>Takeoff Demo Suite</h1>
+    <p class="blurb">
+      A shared entry point for the TTAF takeoff prototypes. Pick a tool below to open it
+      in a new tab. These are working demos for stakeholder review — no login, no build step,
+      everything runs in the browser.
+    </p>
+  </div>
+</header>
+
+<main>
+  <p class="lede">Available demos</p>
+  <div class="grid">
+
+    <!-- ============ DECK TAKEOFF ============ -->
+    <a class="card deck" href="deck-takeoff-demo_2.html" target="_blank" rel="noopener">
+      <div class="accent"></div>
+      <div class="thumb">
+        <!-- mini deck plan: footprint, joist lines, posts -->
+        <svg viewBox="0 0 260 132" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+          <defs>
+            <pattern id="gp" width="13" height="13" patternUnits="userSpaceOnUse">
+              <path d="M13 0H0V13" fill="none" stroke="#d8e6e2" stroke-width="1"/>
+            </pattern>
+          </defs>
+          <rect x="0" y="0" width="260" height="132" fill="url(#gp)"/>
+          <!-- L-shaped deck -->
+          <polygon points="58,34 190,34 190,80 140,80 140,104 58,104"
+                   fill="rgba(43,185,163,0.12)" stroke="#13474D" stroke-width="2.5"/>
+          <!-- joists -->
+          <g stroke="#2BB9A3" stroke-width="1" opacity="0.5">
+            <line x1="70" y1="34" x2="70" y2="104"/><line x1="84" y1="34" x2="84" y2="104"/>
+            <line x1="98" y1="34" x2="98" y2="104"/><line x1="112" y1="34" x2="112" y2="104"/>
+            <line x1="126" y1="34" x2="126" y2="104"/>
+          </g>
+          <!-- support posts (X) -->
+          <g stroke="#17242a" stroke-width="2" stroke-linecap="round">
+            <line x1="185" y1="29" x2="195" y2="39"/><line x1="195" y1="29" x2="185" y2="39"/>
+            <line x1="135" y1="75" x2="145" y2="85"/><line x1="145" y1="75" x2="135" y2="85"/>
+          </g>
+          <!-- rail posts (red dots) -->
+          <g fill="#c0392b" stroke="#fff" stroke-width="1.5">
+            <circle cx="58" cy="34" r="4"/><circle cx="58" cy="104" r="4"/><circle cx="140" cy="104" r="4"/>
+          </g>
+        </svg>
+      </div>
+      <div class="body">
+        <div class="titlerow">
+          <h2>Deck Takeoff</h2>
+          <span class="badge">Draft</span>
+        </div>
+        <p class="desc">
+          Sketch a deck footprint, type in the real dimensions, then drop posts, stairs,
+          hot tubs and joist zones. Emits a structured, versioned takeoff payload for the pipeline.
+        </p>
+        <div class="foot">
+          <span class="fname">deck-takeoff-demo_2.html</span>
+          <span class="open">Open<span class="arr">→</span></span>
+        </div>
+      </div>
+    </a>
+
+    <!-- ============ STAIR CALCULATOR ============ -->
+    <a class="card stair" href="ttaf_stair_calculator_demo_1.html" target="_blank" rel="noopener">
+      <div class="accent"></div>
+      <div class="thumb">
+        <!-- mini stair elevation: sawtooth + hypotenuse -->
+        <svg viewBox="0 0 260 132" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+          <rect x="0" y="0" width="260" height="132" fill="#eef3f9"/>
+          <!-- ground line -->
+          <line x1="34" y1="106" x2="226" y2="106" stroke="#9fb0c4" stroke-width="1" stroke-dasharray="5 4"/>
+          <!-- sawtooth -->
+          <path d="M40 106 L40 92 L64 92 L64 78 L88 78 L88 64 L112 64 L112 50 L136 50 L136 36 L160 36 L160 22 L184 22 L184 106 Z"
+                fill="rgba(31,58,95,0.08)" stroke="#1F3A5F" stroke-width="2" stroke-linejoin="round"/>
+          <!-- stringer hypotenuse -->
+          <line x1="40" y1="106" x2="184" y2="22" stroke="#C0392B" stroke-width="2"/>
+          <!-- angle mark -->
+          <path d="M64 106 A24 24 0 0 0 56 92" fill="none" stroke="#0a5a8a" stroke-width="1"/>
+          <text x="70" y="100" font-family="Consolas,monospace" font-size="9" fill="#0a5a8a" font-weight="bold">34°</text>
+        </svg>
+      </div>
+      <div class="body">
+        <div class="titlerow">
+          <h2>Stair Calculator</h2>
+          <span class="badge">MVP demo</span>
+        </div>
+        <p class="desc">
+          Enter total rise (or step count) and stair width. Selects the pre-configured
+          assembly, scales the bill of materials from Sheet1, and draws a fully dimensioned
+          side elevation + plan view.
+        </p>
+        <div class="foot">
+          <span class="fname">ttaf_stair_calculator_demo_1.html</span>
+          <span class="open">Open<span class="arr">→</span></span>
+        </div>
+      </div>
+    </a>
+
+  </div>
+</main>
+
+<footer>
+  <div class="rule"></div>
+  <b>Demo suite · deterministic prototypes.</b>
+  Both tools run entirely client-side. Rules and quantities are provisional pending spec confirmation.
+  Open a tool in a new tab; close it to return here.
+</footer>
+
+</body>
+</html>

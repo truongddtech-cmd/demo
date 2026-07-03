@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deck Takeoff — Draft</title>
+<style>
+  :root{
+    --ink:#102a2e;          /* deep teal-black, "framing lumber shadow" */
+    --teal:#13474D;
+    --teal-mid:#1F6F78;
+    --teal-bright:#2BB9A3;
+    --paper:#f3f0e7;        /* graph-paper cream */
+    --line:#d8e0dc;
+    --grid:#e6ebe3;
+    --grid-strong:#d3dcd0;
+    --warn:#c2624a;
+    --post-rail:#c0392b;    /* matches the red handrail dots in the real sketches */
+    --post-support:#1c2b2e; /* the X support posts */
+    --field:#ffffff;
+    --muted:#5f7173;
+    --sans:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    --mono:'JetBrains Mono','SF Mono',ui-monospace,Consolas,monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;}
+  body{
+    font-family:var(--sans);
+    color:var(--ink);
+    background:var(--paper);
+    font-size:14px;
+    -webkit-font-smoothing:antialiased;
+  }
+  /* ---------- shell ---------- */
+  .topbar{
+    display:flex;align-items:baseline;gap:14px;
+    padding:14px 22px;
+    background:var(--teal);
+    color:#eaf3f1;
+    border-bottom:3px solid var(--teal-bright);
+  }
+  .topbar h1{
+    font-size:15px;letter-spacing:.18em;text-transform:uppercase;
+    font-weight:600;margin:0;
+  }
+  .topbar .step{font-size:12px;color:var(--teal-bright);letter-spacing:.16em;text-transform:uppercase;}
+  .topbar .right{margin-left:auto;font-size:11.5px;color:#9dc4bf;letter-spacing:.04em;}
+
+  .layout{
+    display:grid;
+    grid-template-columns:340px 1fr 360px;
+    height:calc(100% - 52px);
+  }
+  @media(max-width:1100px){
+    .layout{grid-template-columns:1fr;height:auto;overflow:auto;}
+    .panel{height:auto !important;}
+    #stage{height:60vh;}
+  }
+  .panel{height:100%;overflow:auto;}
+  .panel.form{border-right:1px solid var(--line);background:#faf8f2;}
+  .panel.json{border-left:1px solid var(--line);background:#0f2226;color:#cfe9e3;}
+
+  /* ---------- form ---------- */
+  .form{padding:18px 20px 60px;}
+  .grp{margin-bottom:20px;}
+  .grp > .lbl{
+    font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--teal-mid);font-weight:700;margin-bottom:9px;
+    display:flex;align-items:center;gap:8px;
+  }
+  .grp > .lbl::after{content:"";flex:1;height:1px;background:var(--line);}
+  label.f{display:block;margin-bottom:11px;}
+  label.f span{display:block;font-size:11px;color:var(--muted);margin-bottom:3px;letter-spacing:.02em;}
+  input[type=text],input[type=email],input[type=tel],input[type=date],select,textarea{
+    width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:5px;
+    font-family:var(--sans);font-size:13px;background:var(--field);color:var(--ink);
+  }
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--teal-bright);outline-offset:-1px;border-color:transparent;}
+  textarea{resize:vertical;min-height:48px;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .row3{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:8px;}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;}
+  .chip{
+    padding:5px 11px;border:1px solid var(--line);border-radius:99px;
+    background:var(--field);cursor:pointer;font-size:12px;color:var(--muted);
+    user-select:none;transition:.12s;
+  }
+  .chip:hover{border-color:var(--teal-mid);}
+  .chip.on{background:var(--teal);color:#fff;border-color:var(--teal);font-weight:600;}
+
+  /* ---------- stage ---------- */
+  .stagewrap{display:flex;flex-direction:column;height:100%;min-width:0;}
+  .toolbar{
+    display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+    padding:9px 14px;background:#fff;border-bottom:1px solid var(--line);
+  }
+  .tool{
+    display:flex;align-items:center;gap:6px;
+    padding:6px 11px;border:1px solid var(--line);border-radius:6px;background:#fff;
+    cursor:pointer;font-size:12.5px;color:var(--ink);font-weight:500;transition:.12s;
+  }
+  .tool:hover{border-color:var(--teal-mid);background:#f5faf9;}
+  .tool.active{background:var(--teal);color:#fff;border-color:var(--teal);}
+  .tool .dot{width:10px;height:10px;border-radius:50%;}
+  .tool .dot.rail{background:var(--post-rail);}
+  .tool .dot.support{background:var(--post-support);}
+  .tool.ghost{color:var(--muted);}
+  .sep{width:1px;height:22px;background:var(--line);margin:0 3px;}
+  .hint{font-size:11.5px;color:var(--muted);margin-left:auto;letter-spacing:.02em;}
+
+  #stage{flex:1;position:relative;background:var(--paper);overflow:hidden;min-height:340px;}
+  svg{width:100%;height:100%;display:block;touch-action:none;}
+  .edge{stroke:var(--teal);stroke-width:3.5;fill:none;cursor:pointer;}
+  .edge:hover{stroke:var(--teal-bright);}
+  .edge.beam-drop{stroke:var(--teal-mid);stroke-dasharray:1 7;stroke-linecap:round;stroke-width:5;}
+  .edge.beam-flush{stroke:var(--teal-mid);stroke-width:6;}
+  .deckfill{fill:rgba(43,185,163,0.08);stroke:none;}
+  .vert{fill:#fff;stroke:var(--teal);stroke-width:2.5;cursor:grab;}
+  .vert:hover{fill:var(--teal-bright);}
+  .vert.dragging{cursor:grabbing;fill:var(--teal-bright);}
+  .dimlabel{font-family:var(--mono);font-size:12px;fill:var(--teal);font-weight:600;cursor:pointer;}
+  .dimbg{fill:var(--paper);}
+  .post{cursor:grab;}
+  .post.dragging{cursor:grabbing;}
+  .feat{cursor:grab;}
+  .feat rect{fill:rgba(194,98,74,0.12);stroke:var(--warn);stroke-width:2;stroke-dasharray:5 4;}
+  .feat text{font-family:var(--mono);font-size:11px;fill:var(--warn);font-weight:600;}
+  .stair rect{fill:rgba(31,111,120,0.1);stroke:var(--teal-mid);stroke-width:2;}
+  .stair line{stroke:var(--teal-mid);stroke-width:1.5;}
+  .stair text{font-family:var(--mono);font-size:10px;fill:var(--teal-mid);}
+  .selhalo{fill:none;stroke:var(--teal-bright);stroke-width:2;stroke-dasharray:4 3;}
+  .handle{fill:#fff;stroke:var(--teal-bright);stroke-width:2;}
+  .handle.rotate{cursor:grab;}
+  .handle.resize{cursor:nwse-resize;}
+  .joist{stroke:var(--teal-mid);stroke-width:1;opacity:.55;}
+  .jzrect{fill:rgba(31,111,120,0.05);stroke:none;}
+  .jzoutline{fill:transparent;stroke:var(--teal-mid);stroke-width:1.5;stroke-dasharray:6 4;cursor:grab;}
+  .jzoutline.sel{stroke:var(--teal-bright);stroke-width:2;stroke-dasharray:5 3;}
+  .jzdir{font-family:var(--mono);font-size:11px;fill:var(--teal-mid);font-weight:600;cursor:pointer;user-select:none;}
+
+  .emptyhint{
+    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    pointer-events:none;color:var(--muted);font-size:13px;text-align:center;padding:40px;
+  }
+
+  /* edit popover */
+  #popover{
+    position:absolute;z-index:20;background:#fff;border:1px solid var(--line);
+    border-radius:8px;box-shadow:0 8px 28px rgba(16,42,46,.16);padding:12px;
+    width:210px;display:none;
+  }
+  #popover h4{margin:0 0 8px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--teal-mid);}
+  #popover .pinput{display:flex;gap:6px;align-items:center;margin-bottom:8px;}
+  #popover input{flex:1;}
+  #popover .prow{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;}
+  #popover button{
+    padding:5px 9px;border:1px solid var(--line);border-radius:5px;background:#fff;
+    cursor:pointer;font-size:11.5px;flex:1;
+  }
+  #popover button.primary{background:var(--teal);color:#fff;border-color:var(--teal);}
+  #popover button.danger{color:var(--warn);}
+
+  /* ---------- json ---------- */
+  .json .jhead{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:12px 16px;border-bottom:1px solid #1c3b40;
+  }
+  .json .jhead .t{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--teal-bright);font-weight:700;}
+  .json .jhead button{
+    background:var(--teal-bright);border:none;color:#08201d;font-weight:700;
+    padding:5px 12px;border-radius:5px;cursor:pointer;font-size:11.5px;letter-spacing:.03em;
+  }
+  .json pre{
+    margin:0;padding:14px 16px;font-family:var(--mono);font-size:11.5px;line-height:1.55;
+    white-space:pre-wrap;word-break:break-word;
+  }
+  .k{color:#7fd6c5;} .s{color:#e3c08d;} .n{color:#9fb4ff;} .b{color:#ff9d7a;}
+  .badge{display:inline-block;font-size:10px;padding:1px 7px;border-radius:99px;background:#143034;color:#8fd3c8;margin-left:8px;letter-spacing:.04em;}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <h1>Deck Takeoff</h1>
+  <span class="step">Draft mode</span>
+  <span class="right">Sketch a rough shape · type the real dimensions · drop posts &amp; features</span>
+</div>
+
+<div class="layout">
+  <!-- ============ FORM ============ -->
+  <div class="panel form" id="formPanel">
+    <div class="form">
+      <div class="grp">
+        <div class="lbl">Contact</div>
+        <label class="f"><span>Name</span><input type="text" data-f="contact.name" placeholder="Mike Fauth"></label>
+        <div class="row2">
+          <label class="f"><span>Email</span><input type="email" data-f="contact.email" placeholder="name@co.com"></label>
+          <label class="f"><span>Phone</span><input type="tel" data-f="contact.phone" placeholder="406-581-1243"></label>
+        </div>
+        <label class="f"><span>Company</span><input type="text" data-f="contact.company" placeholder="Empire Building Materials"></label>
+        <label class="f"><span>Company type</span>
+          <div class="chips" data-chips="contact.companyType" data-single="1">
+            <span class="chip" data-v="distributor">Distributor</span>
+            <span class="chip" data-v="dealer">Dealer</span>
+            <span class="chip" data-v="contractor">Contractor</span>
+            <span class="chip" data-v="homeBuilder">Home builder</span>
+            <span class="chip" data-v="architect">Architect</span>
+          </div>
+        </label>
+      </div>
+
+      <div class="grp">
+        <div class="lbl">Project</div>
+        <label class="f"><span>Project name</span><input type="text" data-f="project.name" placeholder="Fauth deck"></label>
+        <label class="f"><span>Address</span><input type="text" data-f="project.address" placeholder="2280 Saddleback Dr"></label>
+        <div class="row3">
+          <label class="f"><span>City</span><input type="text" data-f="project.city"></label>
+          <label class="f"><span>State</span><input type="text" data-f="project.state" maxlength="2"></label>
+          <label class="f"><span>Zip</span><input type="text" data-f="project.zip"></label>
+        </div>
+        <label class="f"><span>Estimated start</span><input type="date" data-f="project.startDate"></label>
+      </div>
+
+      <div class="grp">
+        <div class="lbl">Framing spec</div>
+        <label class="f"><span>Joist spacing</span>
+          <div class="chips" data-chips="spec.joistSpacing" data-single="1">
+            <span class="chip" data-v="12oc">12&quot; O.C.</span>
+            <span class="chip" data-v="16oc">16&quot; O.C.</span>
+            <span class="chip" data-v="other">Other</span>
+          </div>
+        </label>
+        <div class="row2">
+          <label class="f"><span>Deck type</span>
+            <select data-f="spec.deckType">
+              <option value="">—</option><option>Composite/PVC</option><option>Wood</option>
+            </select>
+          </label>
+          <label class="f"><span>Rail type</span>
+            <select data-f="spec.railType">
+              <option value="">—</option><option>Aluminum</option><option>Impression Rail Express</option><option>Other</option>
+            </select>
+          </label>
+        </div>
+        <label class="f"><span>Beam type</span>
+          <div class="chips" data-chips="spec.beamType" data-single="1">
+            <span class="chip" data-v="drop">Drop beam</span>
+            <span class="chip" data-v="flush">Flush beam</span>
+            <span class="chip" data-v="mixed">Mixed (per edge)</span>
+          </div>
+        </label>
+        <label class="f"><span>Fastener</span>
+          <div class="chips" data-chips="spec.fastener" data-single="1">
+            <span class="chip" data-v="hiddenClips">Hidden clips</span>
+            <span class="chip" data-v="cortex">Cortex drillers</span>
+            <span class="chip" data-v="undecided">Undecided</span>
+          </div>
+        </label>
+        <label class="f"><span>Deflection limit</span>
+          <div class="chips" data-chips="spec.deflection" data-single="1">
+            <span class="chip" data-v="L/360">L/360</span>
+            <span class="chip" data-v="L/240">L/240</span>
+            <span class="chip" data-v="L/180">L/180</span>
+            <span class="chip" data-v="unknown">Unknown</span>
+          </div>
+        </label>
+        <label class="f"><span>Picture framing</span>
+          <div class="chips" data-chips="spec.pictureFraming" data-single="1">
+            <span class="chip" data-v="single-5.5">Single 5½&quot;</span>
+            <span class="chip" data-v="single-7.25">Single 7¼&quot;</span>
+            <span class="chip" data-v="double">Double</span>
+            <span class="chip" data-v="none">None</span>
+          </div>
+        </label>
+      </div>
+
+      <div class="grp">
+        <div class="lbl">Notes</div>
+        <label class="f"><span>Customizations / special requirements</span>
+          <textarea data-f="spec.notes" placeholder="e.g. Will need additional load for hot tub. Show on drawing."></textarea>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ STAGE ============ -->
+  <div class="stagewrap">
+    <div class="toolbar">
+      <div class="tool active" data-tool="select">↖ Select</div>
+      <div class="sep"></div>
+      <div class="tool" data-tool="post-rail"><span class="dot rail"></span>Rail post</div>
+      <div class="tool" data-tool="post-support"><span class="dot support"></span>Support post</div>
+      <div class="tool" data-tool="stair">▤ Stair</div>
+      <div class="tool" data-tool="hottub">◻ Hot tub</div>
+      <div class="tool" data-tool="joist">▦ Joist zone</div>
+      <div class="sep"></div>
+      <div class="tool ghost" data-act="undo">↶ Undo</div>
+      <div class="tool ghost" data-act="reset">↺ Reset shape</div>
+      <span class="hint">Click an item to select → drag the corner to resize, the top knob to rotate · double-click an edge to add a corner · joist zones show direction at real spacing</span>
+    </div>
+    <div id="stage">
+      <svg id="svg" viewBox="0 0 900 620" preserveAspectRatio="xMidYMid meet"></svg>
+      <div id="popover"></div>
+    </div>
+  </div>
+
+  <!-- ============ JSON ============ -->
+  <div class="panel json">
+    <div class="jhead">
+      <span class="t">Pipeline payload <span class="badge" id="schemaBadge">takeoff.v1</span></span>
+      <button id="copyBtn">Copy JSON</button>
+    </div>
+    <pre id="jsonOut"></pre>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* =========================================================================
+   MODEL  — the deck is semantic data, not "shapes on a canvas".
+   Boundary = ordered orthogonal vertices. Each edge carries a typed dimension
+   (the salesperson's typed length is the SOURCE OF TRUTH; geometry is approx).
+   ========================================================================= */
+const PX_PER_FT = 22;            // display scale only
+const GRID = 22;                 // snap grid in px (~1 ft)
+
+const state = {
+  meta:{ schema:"takeoff.v1", units:"feet" },
+  contact:{ name:"", email:"", phone:"", company:"", companyType:"" },
+  project:{ name:"", address:"", city:"", state:"", zip:"", startDate:"" },
+  spec:{ joistSpacing:"", deckType:"", railType:"", beamType:"", fastener:"",
+         deflection:"", pictureFraming:"", notes:"" },
+  // geometry (px coords, origin top-left of viewBox)
+  boundary:[
+    {x:230,y:170},{x:670,y:170},{x:670,y:430},{x:230,y:430}
+  ],
+  edges:[ {beam:"none"},{beam:"none"},{beam:"none"},{beam:"none"} ], // per-edge, index = from vertex i
+  posts:[],   // {id,type:'rail'|'support',x,y}
+  features:[],// {id,kind:'hottub',x,y,w,h,angle}  w/h in ft, angle deg, (x,y)=center
+  stairs:[],  // {id,x,y,width,depth,treads,risers,riserH,attachment,angle} (x,y)=center
+  joistZones:[]// {id,x,y,w,h,dir:'h'|'v'}  px rect, joists drawn at form spacing, clipped to deck
+};
+
+let tool = "select";
+let idc = 1;
+const uid = p => p + (idc++);
+
+/* ---------- undo history ----------
+   Snapshot the whole state (geometry + form) BEFORE each committed mutation.
+   Deep clone keeps snapshots independent. Cap depth to bound memory. */
+const history = [];
+const HISTORY_MAX = 50;
+function snapshot(){
+  const snap = JSON.stringify({
+    contact:state.contact, project:state.project, spec:state.spec,
+    boundary:state.boundary, edges:state.edges,
+    posts:state.posts, features:state.features, stairs:state.stairs
+  });
+  if(history.length && history[history.length-1]===snap) return; // skip no-op
+  history.push(snap);
+  if(history.length > HISTORY_MAX) history.shift();
+  updateUndoBtn();
+}
+function undo(){
+  if(!history.length) return;
+  const snap = JSON.parse(history.pop());
+  Object.assign(state, snap);
+  selected = null;
+  syncFormDom();
+  render();
+  updateUndoBtn();
+}
+function updateUndoBtn(){
+  const btn = document.querySelector('[data-act="undo"]');
+  if(btn) btn.style.opacity = history.length ? "1" : "0.4";
+}
+/* push form state into the DOM inputs/chips after an undo */
+function syncFormDom(){
+  document.querySelectorAll("[data-f]").forEach(inp=>{ const v=getPath(state,inp.dataset.f); inp.value = v || ""; });
+  document.querySelectorAll("[data-chips]").forEach(grp=>{ const v=getPath(state,grp.dataset.chips);
+    grp.querySelectorAll(".chip").forEach(c=>c.classList.toggle("on",c.dataset.v===v)); });
+}
+
+const svg = document.getElementById("svg");
+const NS = "http://www.w3.org/2000/svg";
+const pop = document.getElementById("popover");
+
+/* ---------- geometry helpers ---------- */
+const dist = (a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+const ft = px => px / PX_PER_FT;
+function fmtFt(px){
+  const f = ft(px);
+  const whole = Math.floor(f);
+  const inch = Math.round((f-whole)*12);
+  if(inch===0) return whole+"'";
+  if(inch===12) return (whole+1)+"'";
+  return whole+"'"+inch+'"';
+}
+function snap(v){ return Math.round(v/GRID)*GRID; }
+function mid(a,b){ return {x:(a.x+b.x)/2,y:(a.y+b.y)/2}; }
+
+/* convert a pointer event to SVG viewBox coords.
+   Uses the screen CTM so it stays correct under preserveAspectRatio
+   letterboxing, scaling, and element offset — naive width-ratio math does not. */
+function evtPt(e){
+  const pt = svg.createSVGPoint();
+  pt.x = e.clientX; pt.y = e.clientY;
+  const m = svg.getScreenCTM();
+  if(!m) return {x:0,y:0};
+  const p = pt.matrixTransform(m.inverse());
+  return {x:p.x, y:p.y};
+}
+
+/* =========================================================================
+   RENDER
+   ========================================================================= */
+let selected = null; // {kind, id}
+function render(){
+  while(svg.firstChild) svg.removeChild(svg.firstChild);
+  drawGrid();
+  const b = state.boundary;
+
+  // deck fill
+  const poly = el("polygon",{class:"deckfill",
+    points:b.map(p=>p.x+","+p.y).join(" ")});
+  svg.appendChild(poly);
+
+  // edges + dimensions
+  for(let i=0;i<b.length;i++){
+    const a=b[i], c=b[(i+1)%b.length];
+    const beam = state.edges[i]?.beam || "none";
+    const cls = "edge"+(beam==="drop"?" beam-drop":beam==="flush"?" beam-flush":"");
+    const line = el("line",{class:cls,x1:a.x,y1:a.y,x2:c.x,y2:c.y});
+    line.addEventListener("dblclick",ev=>{ev.stopPropagation();addCorner(i,evtPt(ev));});
+    line.addEventListener("click",ev=>{ev.stopPropagation();openEdgePopover(i,ev);});
+    svg.appendChild(line);
+
+    // dimension label
+    const m = mid(a,c);
+    const horiz = Math.abs(a.x-c.x) > Math.abs(a.y-c.y);
+    const lx = m.x + (horiz?0:14), ly = m.y + (horiz?-9:4);
+    const txt = fmtFt(dist(a,c));
+    const bg = el("rect",{class:"dimbg",x:lx-txt.length*4-3,y:ly-12,width:txt.length*8+6,height:16,rx:3});
+    const t = el("text",{class:"dimlabel",x:lx,y:ly,"text-anchor":"middle"});
+    t.textContent = txt;
+    [bg,t].forEach(n=>{ n.addEventListener("click",ev=>{ev.stopPropagation();openDimPopover(i,ev);}); svg.appendChild(n);});
+  }
+
+  // vertices
+  b.forEach((p,i)=>{
+    const v = el("circle",{class:"vert",cx:p.x,cy:p.y,r:7,"data-vi":i});
+    v.addEventListener("pointerdown",ev=>startDragVertex(ev,i));
+    svg.appendChild(v);
+  });
+
+  // joist zones (drawn under features but over deck fill): real lines at form spacing, clipped to deck
+  drawJoists();
+
+  // features (hot tub) — center-based, rotatable, resizable
+  state.features.forEach(f=>{
+    const w=f.w*PX_PER_FT, h=f.h*PX_PER_FT;
+    const g = el("g",{class:"feat","data-id":f.id,
+      transform:`translate(${f.x},${f.y}) rotate(${f.angle||0})`});
+    g.appendChild(el("rect",{x:-w/2,y:-h/2,width:w,height:h,rx:4}));
+    const t=el("text",{x:0,y:4,"text-anchor":"middle"});
+    t.textContent = round1(f.w)+"×"+round1(f.h)+"′ tub"; g.appendChild(t);
+    g.addEventListener("pointerdown",ev=>startDragFeature(ev,f));
+    if(isSel("feature",f.id)) addHandles(g,f,w,h,"feature");
+    svg.appendChild(g);
+  });
+
+  // stairs — center-based, rotatable, resizable; tread lines run across the width
+  state.stairs.forEach(s=>{
+    const w=s.width*PX_PER_FT, h=(s.depth||2)*PX_PER_FT;
+    const g=el("g",{class:"stair","data-id":s.id,
+      transform:`translate(${s.x},${s.y}) rotate(${s.angle||0})`});
+    g.appendChild(el("rect",{x:-w/2,y:-h/2,width:w,height:h,rx:3}));
+    const n=Math.max(2,Math.min(s.treads,12));
+    for(let i=1;i<n;i++){ const yy=-h/2+h*i/n; g.appendChild(el("line",{x1:-w/2,y1:yy,x2:w/2,y2:yy})); }
+    const t=el("text",{x:0,y:h/2+12,"text-anchor":"middle"});
+    t.textContent = s.treads+"T/"+s.risers+"R · "+round1(s.width)+"′"; g.appendChild(t);
+    g.addEventListener("pointerdown",ev=>startDragStair(ev,s));
+    if(isSel("stair",s.id)) addHandles(g,s,w,h,"stair");
+    svg.appendChild(g);
+  });
+
+  // posts
+  state.posts.forEach(p=>{
+    const g=el("g",{class:"post","data-id":p.id});
+    if(p.type==="rail"){
+      g.appendChild(el("circle",{cx:p.x,cy:p.y,r:6,fill:"var(--post-rail)",stroke:"#fff","stroke-width":2}));
+    } else {
+      const s=6;
+      g.appendChild(el("line",{x1:p.x-s,y1:p.y-s,x2:p.x+s,y2:p.y+s,stroke:"var(--post-support)","stroke-width":3,"stroke-linecap":"round"}));
+      g.appendChild(el("line",{x1:p.x-s,y1:p.y+s,x2:p.x+s,y2:p.y-s,stroke:"var(--post-support)","stroke-width":3,"stroke-linecap":"round"}));
+    }
+    if(isSel("post",p.id)) g.appendChild(el("circle",{class:"selhalo",cx:p.x,cy:p.y,r:11}));
+    g.addEventListener("pointerdown",ev=>startDragPost(ev,p));
+    svg.appendChild(g);
+  });
+
+  emitJSON();
+}
+function el(tag,attrs){ const n=document.createElementNS(NS,tag); for(const k in attrs) n.setAttribute(k,attrs[k]); return n; }
+function isSel(kind,id){ return selected && selected.kind===kind && selected.id===id; }
+const round1 = v => Math.round(v*10)/10;
+
+/* selection handles for a rotatable rect (drawn in the object's local, rotated frame).
+   bottom-right = resize, top-center stalk = rotate. */
+function addHandles(g,obj,w,h,kind){
+  g.appendChild(el("rect",{class:"selhalo",x:-w/2-4,y:-h/2-4,width:w+8,height:h+8,rx:6}));
+  // rotate handle: stalk going up from top edge
+  const ry=-h/2-26;
+  g.appendChild(el("line",{x1:0,y1:-h/2,x2:0,y2:ry,stroke:"var(--teal-bright)","stroke-width":1.5}));
+  const rot=el("circle",{class:"handle rotate",cx:0,cy:ry,r:6});
+  rot.addEventListener("pointerdown",ev=>startRotate(ev,obj,kind));
+  g.appendChild(rot);
+  // resize handle: bottom-right corner
+  const rz=el("rect",{class:"handle resize",x:w/2-5,y:h/2-5,width:10,height:10,rx:2});
+  rz.addEventListener("pointerdown",ev=>startResize(ev,obj,kind));
+  g.appendChild(rz);
+}
+
+/* joist zones: render evenly spaced lines at the form spacing, clipped to the deck polygon */
+function joistSpacingFt(){
+  const m={ "12oc":1, "16oc":1.3333 }; // feet between joists
+  return m[state.spec.joistSpacing] || 1.3333;
+}
+function drawJoists(){
+  if(!state.joistZones.length) return;
+  const b=state.boundary;
+  // build a clipPath of the deck so joist lines never spill outside the footprint
+  const defs=el("defs",{});
+  const cp=el("clipPath",{id:"deckclip"});
+  cp.appendChild(el("polygon",{points:b.map(p=>p.x+","+p.y).join(" ")}));
+  defs.appendChild(cp); svg.appendChild(defs);
+
+  const spacingPx=joistSpacingFt()*PX_PER_FT;
+  state.joistZones.forEach(z=>{
+    const g=el("g",{class:"joistzone","data-id":z.id,"clip-path":"url(#deckclip)"});
+    // backing rect (faint) to show the zone area
+    const zr=el("rect",{class:"jzrect",x:z.x,y:z.y,width:z.w,height:z.h});
+    g.appendChild(zr);
+    if(z.dir==="v"){
+      for(let x=z.x; x<=z.x+z.w; x+=spacingPx) g.appendChild(el("line",{class:"joist",x1:x,y1:z.y,x2:x,y2:z.y+z.h}));
+    } else {
+      for(let y=z.y; y<=z.y+z.h; y+=spacingPx) g.appendChild(el("line",{class:"joist",x1:z.x,y1:y,x2:z.x+z.w,y2:y}));
+    }
+    svg.appendChild(g);
+    // selectable zone outline + handles live OUTSIDE the clip so they're always grabbable
+    const out=el("rect",{class:"jzoutline"+(isSel("joist",z.id)?" sel":""),x:z.x,y:z.y,width:z.w,height:z.h,
+      "data-id":z.id});
+    out.addEventListener("pointerdown",ev=>startDragZone(ev,z));
+    svg.appendChild(out);
+    if(isSel("joist",z.id)){
+      const rz=el("rect",{class:"handle resize",x:z.x+z.w-5,y:z.y+z.h-5,width:10,height:10,rx:2});
+      rz.addEventListener("pointerdown",ev=>startResizeZone(ev,z));
+      svg.appendChild(rz);
+      // direction toggle chip
+      const fo=el("text",{class:"jzdir",x:z.x+8,y:z.y+16});
+      fo.textContent = z.dir==="v" ? "↕ vertical" : "↔ horizontal";
+      fo.addEventListener("pointerdown",ev=>{ev.stopPropagation();snapshot();z.dir=z.dir==="v"?"h":"v";render();});
+      svg.appendChild(fo);
+    }
+  });
+}
+
+/* graph-paper grid: 1 light line per foot, 1 stronger line per 5 ft */
+function drawGrid(){
+  const vb = svg.viewBox.baseVal;
+  const W = vb.width, H = vb.height;
+  const g = el("g",{"pointer-events":"none"});
+  for(let x=0; x<=W; x+=GRID){
+    const major = Math.round(x/GRID) % 5 === 0;
+    g.appendChild(el("line",{x1:x,y1:0,x2:x,y2:H,
+      stroke: major ? "var(--grid-strong)" : "var(--grid)",
+      "stroke-width": major ? 1.2 : 0.8}));
+  }
+  for(let y=0; y<=H; y+=GRID){
+    const major = Math.round(y/GRID) % 5 === 0;
+    g.appendChild(el("line",{x1:0,y1:y,x2:W,y2:y,
+      stroke: major ? "var(--grid-strong)" : "var(--grid)",
+      "stroke-width": major ? 1.2 : 0.8}));
+  }
+  svg.appendChild(g);
+}
+
+/* =========================================================================
+   EDIT OPS
+   ========================================================================= */
+function addCorner(edgeIndex, at){
+  snapshot();
+  // insert a vertex on edge, snapped — splits one edge into two
+  const b=state.boundary;
+  const a=b[edgeIndex], c=b[(edgeIndex+1)%b.length];
+  const m={x:snap(at.x),y:snap(at.y)};
+  b.splice(edgeIndex+1,0,m);
+  state.edges.splice(edgeIndex+1,0,{beam:"none"});
+  render();
+}
+function removeCorner(i){
+  if(state.boundary.length<=3) return;
+  snapshot();
+  state.boundary.splice(i,1);
+  state.edges.splice(i,1);
+  render();
+}
+function resetShape(){
+  snapshot();
+  state.boundary=[{x:230,y:170},{x:670,y:170},{x:670,y:430},{x:230,y:430}];
+  state.edges=[{beam:"none"},{beam:"none"},{beam:"none"},{beam:"none"}];
+  state.posts=[];state.features=[];state.stairs=[];state.joistZones=[];
+  selected=null; render();
+}
+
+/* ---------- dragging ---------- */
+function startDragVertex(e,i){
+  if(tool!=="select") return;
+  e.stopPropagation();
+  snapshot();
+  const target=e.target; target.classList.add("dragging");
+  const move=ev=>{ const p=evtPt(ev); state.boundary[i]={x:snap(p.x),y:snap(p.y)}; render(); document.querySelectorAll('.vert')[i]?.classList.add('dragging'); };
+  const up=()=>{ window.removeEventListener("pointermove",move); window.removeEventListener("pointerup",up); render(); };
+  window.addEventListener("pointermove",move); window.addEventListener("pointerup",up);
+}
+function genericDrag(e,obj,onMove){
+  e.stopPropagation();
+  snapshot();
+  const start=evtPt(e); const o={x:obj.x,y:obj.y};
+  const move=ev=>{ const p=evtPt(ev); onMove(o.x+(p.x-start.x),o.y+(p.y-start.y)); render(); };
+  const up=()=>{ window.removeEventListener("pointermove",move); window.removeEventListener("pointerup",up); render(); };
+  window.addEventListener("pointermove",move); window.addEventListener("pointerup",up);
+}
+function startDragPost(e,p){
+  if(tool!=="select"){return;}
+  selected={kind:"post",id:p.id};
+  genericDrag(e,p,(x,y)=>{p.x=snap(x);p.y=snap(y);});
+}
+function startDragFeature(e,f){
+  if(tool!=="select"){return;}
+  selected={kind:"feature",id:f.id};
+  genericDrag(e,f,(x,y)=>{f.x=snap(x);f.y=snap(y);});
+}
+function startDragStair(e,s){
+  if(tool!=="select"){return;}
+  selected={kind:"stair",id:s.id};
+  genericDrag(e,s,(x,y)=>{s.x=snap(x);s.y=snap(y);});
+}
+
+/* rotate: angle from object center to pointer; Shift snaps to 15° */
+function startRotate(e,obj,kind){
+  e.stopPropagation();
+  selected={kind,id:obj.id};
+  snapshot();
+  const move=ev=>{
+    const p=evtPt(ev);
+    let deg=Math.atan2(p.y-obj.y, p.x-obj.x)*180/Math.PI + 90; // +90: handle sits "up"
+    if(ev.shiftKey) deg=Math.round(deg/15)*15;
+    obj.angle=Math.round(deg);
+    render();
+  };
+  const up=()=>{ window.removeEventListener("pointermove",move); window.removeEventListener("pointerup",up); render(); };
+  window.addEventListener("pointermove",move); window.addEventListener("pointerup",up);
+}
+/* resize: project the pointer offset into the object's rotated frame to get new w/h (in ft) */
+function startResize(e,obj,kind){
+  e.stopPropagation();
+  selected={kind,id:obj.id};
+  snapshot();
+  const rad=()=>(obj.angle||0)*Math.PI/180;
+  const move=ev=>{
+    const p=evtPt(ev);
+    const dx=p.x-obj.x, dy=p.y-obj.y;
+    const ca=Math.cos(-rad()), sa=Math.sin(-rad());
+    // local half-extents = rotate the offset back, then *2 for full size
+    const lx=Math.abs(dx*ca - dy*sa)*2;
+    const ly=Math.abs(dx*sa + dy*ca)*2;
+    const wFt=Math.max(1, round1(lx/PX_PER_FT));
+    const hFt=Math.max(1, round1(ly/PX_PER_FT));
+    if(kind==="feature"){ obj.w=wFt; obj.h=hFt; }
+    else { obj.width=wFt; obj.depth=hFt; }
+    render();
+  };
+  const up=()=>{ window.removeEventListener("pointermove",move); window.removeEventListener("pointerup",up); render(); };
+  window.addEventListener("pointermove",move); window.addEventListener("pointerup",up);
+}
+/* joist zone drag + resize (axis-aligned, no rotation) */
+function startDragZone(e,z){
+  if(tool!=="select"){return;}
+  e.stopPropagation();
+  selected={kind:"joist",id:z.id};
+  snapshot();
+  const start=evtPt(e); const o={x:z.x,y:z.y};
+  const move=ev=>{ const p=evtPt(ev); z.x=snap(o.x+(p.x-start.x)); z.y=snap(o.y+(p.y-start.y)); render(); };
+  const up=()=>{ window.removeEventListener("pointermove",move); window.removeEventListener("pointerup",up); render(); };
+  window.addEventListener("pointermove",move); window.addEventListener("pointerup",up);
+}
+function startResizeZone(e,z){
+  e.stopPropagation();
+  selected={kind:"joist",id:z.id};
+  snapshot();
+  const move=ev=>{ const p=evtPt(ev); z.w=Math.max(GRID,snap(p.x-z.x)); z.h=Math.max(GRID,snap(p.y-z.y)); render(); };
+  const up=()=>{ window.removeEventListener("pointermove",move); window.removeEventListener("pointerup",up); render(); };
+  window.addEventListener("pointermove",move); window.addEventListener("pointerup",up);
+}
+
+/* ---------- placing via tools ---------- */
+svg.addEventListener("click",e=>{
+  const p=evtPt(e);
+  if(tool==="post-rail"){ snapshot(); state.posts.push({id:uid("p"),type:"rail",x:snap(p.x),y:snap(p.y)}); render(); }
+  else if(tool==="post-support"){ snapshot(); state.posts.push({id:uid("p"),type:"support",x:snap(p.x),y:snap(p.y)}); render(); }
+  else if(tool==="hottub"){ snapshot(); state.features.push({id:uid("f"),kind:"hottub",x:snap(p.x),y:snap(p.y),w:8,h:8,angle:0}); setTool("select"); render(); }
+  else if(tool==="stair"){ snapshot(); state.stairs.push({id:uid("s"),x:snap(p.x),y:snap(p.y),width:4,depth:2,treads:15,risers:16,riserH:7.125,attachment:"flush",angle:0}); setTool("select"); render(); }
+  else if(tool==="joist"){ snapshot(); state.joistZones.push({id:uid("z"),x:snap(p.x-66),y:snap(p.y-44),w:132,h:88,dir:"v"}); setTool("select"); render(); }
+  else { selected=null; render(); }
+  pop.style.display="none";
+});
+
+/* =========================================================================
+   POPOVERS  — dimension entry (source of truth) + edge beam + element edit
+   ========================================================================= */
+function placePop(e){
+  const r=document.getElementById("stage").getBoundingClientRect();
+  pop.style.left=Math.min(e.clientX-r.left,r.width-225)+"px";
+  pop.style.top=Math.min(e.clientY-r.top,r.height-160)+"px";
+  pop.style.display="block";
+}
+function openDimPopover(i,e){
+  const b=state.boundary; const a=b[i], c=b[(i+1)%b.length];
+  const cur=ft(dist(a,c)).toFixed(2);
+  pop.innerHTML=`<h4>Edge length</h4>
+    <div class="pinput"><input id="dimv" type="text" value="${cur}"><span style="color:var(--muted)">ft</span></div>
+    <div class="prow"><button class="primary" id="dimok">Set length</button></div>
+    <div style="font-size:10.5px;color:var(--muted);line-height:1.4">Typed length is stored as the true dimension. The drawing just rescales this edge to match.</div>`;
+  placePop(e);
+  document.getElementById("dimv").focus();
+  document.getElementById("dimok").onclick=()=>{
+    const val=parseFloat(document.getElementById("dimv").value);
+    if(val>0){ snapshot(); resizeEdge(i,val); }
+    pop.style.display="none"; render();
+  };
+}
+function resizeEdge(i,feet){
+  // Move endpoint c along the edge direction so |a..c| == feet. Orthogonal-friendly.
+  const b=state.boundary; const a=b[i], c=b[(i+1)%b.length];
+  const len=dist(a,c)||1; const ux=(c.x-a.x)/len, uy=(c.y-a.y)/len;
+  const newLen=feet*PX_PER_FT;
+  const nc={x:a.x+ux*newLen, y:a.y+uy*newLen};
+  const dx=nc.x-c.x, dy=nc.y-c.y;
+  // shift the moved vertex and everything after it, so the rest of the shape rides along
+  for(let k=(i+1)%b.length; k!==i; k=(k+1)%b.length){ b[k].x+=dx; b[k].y+=dy; }
+  b[(i+1)%b.length]={x:snap(a.x+ux*newLen),y:snap(a.y+uy*newLen)};
+}
+function openEdgePopover(i,e){
+  const cur=state.edges[i]?.beam||"none";
+  pop.innerHTML=`<h4>Edge → beam</h4>
+    <div class="prow">
+      <button data-bm="none"   class="${cur==='none'?'primary':''}">None</button>
+      <button data-bm="drop"   class="${cur==='drop'?'primary':''}">Drop</button>
+      <button data-bm="flush"  class="${cur==='flush'?'primary':''}">Flush</button>
+    </div>
+    <div class="prow"><button id="addc">＋ Add corner here</button></div>`;
+  placePop(e);
+  pop.querySelectorAll("[data-bm]").forEach(btn=>btn.onclick=()=>{
+    snapshot(); state.edges[i].beam=btn.dataset.bm; pop.style.display="none"; render();
+  });
+  document.getElementById("addc").onclick=()=>{ addCorner(i,evtPt(e)); pop.style.display="none"; };
+}
+
+/* double-click element to edit/delete */
+svg.addEventListener("dblclick",e=>{
+  const fg=e.target.closest(".feat"); const sg=e.target.closest(".stair"); const pg=e.target.closest(".post");
+  if(fg) return openFeatureEdit(fg.dataset.id,e);
+  if(sg) return openStairEdit(sg.dataset.id,e);
+  if(pg) return openPostEdit(pg.dataset.id,e);
+});
+function openFeatureEdit(id,e){
+  const f=state.features.find(x=>x.id===id); if(!f)return;
+  pop.innerHTML=`<h4>Hot tub (ft)</h4>
+    <div class="pinput"><input id="fw" type="number" value="${f.w}" style="flex:1"> × <input id="fh" type="number" value="${f.h}" style="flex:1"></div>
+    <div class="prow"><button class="primary" id="fok">Apply</button><button class="danger" id="fdel">Delete</button></div>`;
+  placePop(e);
+  document.getElementById("fok").onclick=()=>{snapshot();f.w=+document.getElementById("fw").value;f.h=+document.getElementById("fh").value;pop.style.display="none";render();};
+  document.getElementById("fdel").onclick=()=>{snapshot();state.features=state.features.filter(x=>x.id!==id);selected=null;pop.style.display="none";render();};
+}
+function openStairEdit(id,e){
+  const s=state.stairs.find(x=>x.id===id); if(!s)return;
+  pop.innerHTML=`<h4>Stair</h4>
+    <label class="f"><span>Width (ft)</span><input id="sw" type="number" value="${s.width}"></label>
+    <div class="row2"><label class="f"><span>Treads</span><input id="st" type="number" value="${s.treads}"></label>
+    <label class="f"><span>Risers</span><input id="sr" type="number" value="${s.risers}"></label></div>
+    <label class="f"><span>Attachment</span>
+      <select id="sa"><option value="flush" ${s.attachment==='flush'?'selected':''}>Flush step</option>
+      <option value="drop-posts" ${s.attachment==='drop-posts'?'selected':''}>Drop (attached to posts)</option>
+      <option value="drop-suspended" ${s.attachment==='drop-suspended'?'selected':''}>Drop (suspended)</option></select></label>
+    <div class="prow"><button class="primary" id="sok">Apply</button><button class="danger" id="sdel">Delete</button></div>`;
+  placePop(e);
+  document.getElementById("sok").onclick=()=>{
+    snapshot();
+    s.width=+document.getElementById("sw").value;s.treads=+document.getElementById("st").value;
+    s.risers=+document.getElementById("sr").value;s.attachment=document.getElementById("sa").value;
+    pop.style.display="none";render();};
+  document.getElementById("sdel").onclick=()=>{snapshot();state.stairs=state.stairs.filter(x=>x.id!==id);selected=null;pop.style.display="none";render();};
+}
+function openPostEdit(id,e){
+  const p=state.posts.find(x=>x.id===id); if(!p)return;
+  pop.innerHTML=`<h4>Post</h4>
+    <div class="prow"><button class="${p.type==='rail'?'primary':''}" id="pr">Rail</button><button class="${p.type==='support'?'primary':''}" id="ps">Support</button></div>
+    <div class="prow"><button class="danger" id="pdel">Delete</button></div>`;
+  placePop(e);
+  document.getElementById("pr").onclick=()=>{snapshot();p.type="rail";pop.style.display="none";render();};
+  document.getElementById("ps").onclick=()=>{snapshot();p.type="support";pop.style.display="none";render();};
+  document.getElementById("pdel").onclick=()=>{snapshot();state.posts=state.posts.filter(x=>x.id!==id);selected=null;pop.style.display="none";render();};
+}
+
+/* close popover on outside click */
+document.addEventListener("pointerdown",e=>{ if(!pop.contains(e.target) && e.target.closest("#stage")===null) pop.style.display="none"; });
+
+/* keyboard: undo + delete selection */
+window.addEventListener("keydown",e=>{
+  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==="z"){ e.preventDefault(); undo(); return; }
+  if((e.key==="Delete"||e.key==="Backspace") && selected){
+    snapshot();
+    const {kind,id}=selected;
+    if(kind==="post") state.posts=state.posts.filter(x=>x.id!==id);
+    if(kind==="feature") state.features=state.features.filter(x=>x.id!==id);
+    if(kind==="stair") state.stairs=state.stairs.filter(x=>x.id!==id);
+    if(kind==="joist") state.joistZones=state.joistZones.filter(x=>x.id!==id);
+    selected=null; render();
+  }
+});
+
+/* =========================================================================
+   TOOLBAR + FORM WIRING
+   ========================================================================= */
+function setTool(t){
+  tool=t;
+  document.querySelectorAll(".tool[data-tool]").forEach(b=>b.classList.toggle("active",b.dataset.tool===t));
+}
+document.querySelectorAll(".tool[data-tool]").forEach(b=>b.onclick=()=>setTool(b.dataset.tool));
+document.querySelector('[data-act="reset"]').onclick=resetShape;
+document.querySelector('[data-act="undo"]').onclick=undo;
+
+// text/select fields -> nested state. Snapshot once per editing session (on focus).
+document.querySelectorAll("[data-f]").forEach(inp=>{
+  inp.addEventListener("focus",()=>snapshot());
+  inp.addEventListener("input",()=>{ setPath(state,inp.dataset.f,inp.value); emitJSON(); });
+});
+// chip groups (single-select)
+document.querySelectorAll("[data-chips]").forEach(grp=>{
+  grp.querySelectorAll(".chip").forEach(chip=>{
+    chip.onclick=()=>{
+      snapshot();
+      grp.querySelectorAll(".chip").forEach(c=>c.classList.remove("on"));
+      chip.classList.add("on");
+      setPath(state,grp.dataset.chips,chip.dataset.v);
+      emitJSON();
+    };
+  });
+});
+function setPath(obj,path,val){ const ks=path.split("."); let o=obj; for(let i=0;i<ks.length-1;i++) o=o[ks[i]]; o[ks[ks.length-1]]=val; }
+
+/* =========================================================================
+   JSON EMIT  — the deliverable. px -> feet, semantic, versioned.
+   ========================================================================= */
+function buildPayload(){
+  const b=state.boundary;
+  const edges=b.map((p,i)=>{
+    const a=b[i], c=b[(i+1)%b.length];
+    return { from:i, to:(i+1)%b.length, lengthFt:+ft(dist(a,c)).toFixed(2), beam:state.edges[i]?.beam||"none" };
+  });
+  // bounding footprint
+  const xs=b.map(p=>p.x), ys=b.map(p=>p.y);
+  const footprint={ widthFt:+ft(Math.max(...xs)-Math.min(...xs)).toFixed(2),
+                    depthFt:+ft(Math.max(...ys)-Math.min(...ys)).toFixed(2) };
+  const ox=Math.min(...xs), oy=Math.min(...ys);
+  const rel=(x,y)=>({xFt:+ft(x-ox).toFixed(2), yFt:+ft(y-oy).toFixed(2)});
+  return {
+    schema:state.meta.schema, units:state.meta.units,
+    generatedAt:new Date().toISOString(),
+    contact:state.contact, project:state.project, spec:state.spec,
+    geometry:{
+      footprint,
+      vertices:b.map(p=>rel(p.x,p.y)),
+      edges,
+      posts:state.posts.map(p=>({id:p.id,type:p.type,...rel(p.x,p.y)})),
+      features:state.features.map(f=>({id:f.id,kind:f.kind,widthFt:f.w,depthFt:f.h,rotationDeg:f.angle||0,...rel(f.x,f.y)})),
+      stairs:state.stairs.map(s=>({id:s.id,widthFt:s.width,depthFt:s.depth||2,treads:s.treads,risers:s.risers,riserHeightIn:s.riserH,attachment:s.attachment,rotationDeg:s.angle||0,...rel(s.x,s.y)})),
+      joistZones:state.joistZones.map(z=>({id:z.id,direction:z.dir==="v"?"vertical":"horizontal",
+        spacing:state.spec.joistSpacing||"16oc",
+        widthFt:+ft(z.w).toFixed(2),depthFt:+ft(z.h).toFixed(2),...rel(z.x,z.y)}))
+    }
+  };
+}
+function syntaxHighlight(obj){
+  let j=JSON.stringify(obj,null,2);
+  j=j.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  return j.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+    m=>{ let cls="n";
+      if(/^"/.test(m)){ cls=/:$/.test(m)?"k":"s"; }
+      else if(/true|false|null/.test(m)){ cls="b"; }
+      return '<span class="'+cls+'">'+m+'</span>'; });
+}
+function emitJSON(){
+  document.getElementById("jsonOut").innerHTML=syntaxHighlight(buildPayload());
+}
+document.getElementById("copyBtn").onclick=()=>{
+  navigator.clipboard.writeText(JSON.stringify(buildPayload(),null,2));
+  const btn=document.getElementById("copyBtn"); const o=btn.textContent;
+  btn.textContent="Copied ✓"; setTimeout(()=>btn.textContent=o,1200);
+};
+
+/* =========================================================================
+   SEED — preload the Fauth deck so the demo opens with something real
+   ========================================================================= */
+(function seed(){
+  // form
+  const set=(p,v)=>setPath(state,p,v);
+  set("contact.name","Mike Fauth"); set("contact.email","mikef@empireinc.com");
+  set("contact.phone","406-581-1243"); set("contact.company","Empire Building Materials");
+  set("contact.companyType","distributor");
+  set("project.name","Fauth deck"); set("project.address","2280 Saddleback Dr");
+  set("project.city","Laurel"); set("project.state","MT"); set("project.zip","59044");
+  set("spec.joistSpacing","16oc"); set("spec.deckType","Composite/PVC"); set("spec.railType","Aluminum");
+  set("spec.beamType","mixed"); set("spec.fastener","hiddenClips"); set("spec.deflection","unknown");
+  set("spec.pictureFraming","single-5.5");
+  set("spec.notes","Will need additional load for hot tub. Show on drawing. Stairs: 15 treads, 16 risers @ 7.125\".");
+  // reflect into DOM
+  document.querySelectorAll("[data-f]").forEach(inp=>{ const v=getPath(state,inp.dataset.f); if(v) inp.value=v; });
+  document.querySelectorAll("[data-chips]").forEach(grp=>{ const v=getPath(state,grp.dataset.chips);
+    grp.querySelectorAll(".chip").forEach(c=>c.classList.toggle("on",c.dataset.v===v)); });
+  // geometry: an L-ish footprint with a drop-beam edge, a hot tub, posts, a stair
+  state.boundary=[{x:230,y:150},{x:650,y:150},{x:650,y:340},{x:520,y:340},{x:520,y:450},{x:230,y:450}];
+  state.edges=[{beam:"none"},{beam:"flush"},{beam:"none"},{beam:"drop"},{beam:"none"},{beam:"none"}];
+  state.features=[{id:uid("f"),kind:"hottub",x:340,y:250,w:8,h:8,angle:0}];
+  state.posts=[
+    {id:uid("p"),type:"support",x:650,y:150},{id:uid("p"),type:"support",x:650,y:340},
+    {id:uid("p"),type:"rail",x:230,y:150},{id:uid("p"),type:"rail",x:230,y:450},
+    {id:uid("p"),type:"rail",x:520,y:450}
+  ];
+  state.stairs=[{id:uid("s"),x:585,y:400,width:4,depth:2,treads:15,risers:16,riserH:7.125,attachment:"drop-suspended",angle:0}];
+  state.joistZones=[{id:uid("z"),x:248,y:168,w:380,h:160,dir:"v"}];
+  render();
+  updateUndoBtn();
+})();
+function getPath(o,p){ return p.split(".").reduce((a,k)=>a&&a[k],o); }
+</script>
+</body>
+</html>

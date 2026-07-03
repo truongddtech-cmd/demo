@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TTAF Stair Calculator — Demo</title>
+<style>
+  :root{
+    --navy:#1F3A5F; --accent:#C0392B; --green:#0A7A50; --grey:#555;
+    --line:#d8dee6; --bg:#f4f6f9; --card:#fff; --light:#eef3f8;
+    --ink:#1a1a1a; --dim:#0a5a8a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+    color:#222;background:var(--bg);font-size:14px;line-height:1.45}
+  header{background:var(--navy);color:#fff;padding:16px 22px}
+  header h1{margin:0;font-size:19px;font-weight:700}
+  header p{margin:4px 0 0;font-size:12px;opacity:.8}
+  .wrap{max-width:1180px;margin:0 auto;padding:18px 16px 60px;
+    display:grid;grid-template-columns:340px 1fr;gap:18px}
+  @media(max-width:880px){.wrap{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:16px}
+  .card h2{margin:0 0 12px;font-size:14px;color:var(--navy);
+    border-bottom:2px solid var(--accent);padding-bottom:6px}
+  label{display:block;font-weight:600;margin:12px 0 4px;font-size:12.5px}
+  .hint{font-weight:400;color:var(--grey);font-size:11.5px}
+  input[type=number],input[type=text],select{width:100%;padding:8px 9px;
+    border:1px solid var(--line);border-radius:5px;font-size:13px;background:#fff}
+  .seg{display:flex;border:1px solid var(--line);border-radius:5px;overflow:hidden;margin-top:2px}
+  .seg button{flex:1;padding:8px;border:0;background:#fff;cursor:pointer;font-size:12.5px}
+  .seg button.on{background:var(--navy);color:#fff;font-weight:600}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .chips{display:flex;gap:6px;margin-top:4px;flex-wrap:wrap}
+  .chip{padding:5px 9px;border:1px solid var(--line);border-radius:14px;
+    background:#fff;cursor:pointer;font-size:12px}
+  .chip.on{background:var(--green);color:#fff;border-color:var(--green)}
+  button.go{margin-top:16px;width:100%;padding:11px;background:var(--accent);
+    color:#fff;border:0;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer}
+  button.go:hover{filter:brightness(.93)}
+  .alert{margin-top:10px;padding:9px 11px;border-radius:6px;font-size:12.5px;display:none}
+  .alert.warn{background:#fff5e6;border:1px solid #f0c070;color:#92600a;display:block}
+  .alert.info{background:#eaf3ff;border:1px solid #aacdf5;color:#1a4d80;display:block}
+  .meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:6px}
+  .meta .box{background:var(--light);border-radius:6px;padding:9px 11px}
+  .meta .box .k{font-size:11px;color:var(--grey)}
+  .meta .box .v{font-size:16px;font-weight:700;color:var(--navy)}
+  table{width:100%;border-collapse:collapse;margin-top:6px;font-size:12.5px}
+  th,td{border:1px solid var(--line);padding:6px 8px;text-align:left}
+  th{background:var(--navy);color:#fff;font-weight:600}
+  td.qty,th.qty{text-align:center;width:54px}
+  td.pn{font-family:Consolas,monospace;color:var(--navy);white-space:nowrap}
+  tr.added td{background:#fdf4f3}
+  .tag{display:inline-block;font-size:10px;background:var(--accent);color:#fff;
+    padding:1px 6px;border-radius:8px;margin-left:6px;vertical-align:middle}
+  .draw{display:grid;grid-template-columns:1fr;gap:16px;margin-top:6px}
+  .draw .panel{border:1px solid var(--line);border-radius:6px;padding:10px 12px;background:#fff}
+  .draw .panel h3{margin:2px 0 8px;font-size:12px;color:var(--grey);text-align:center}
+  .draw .panel svg{width:100%;height:auto;display:block}
+  .draw .panel svg+svg{width:auto;margin-top:6px}
+  .placeholder{color:#999;text-align:center;padding:40px 10px;font-size:13px}
+  .notes{margin-top:10px;font-size:12px;color:var(--grey)}
+  .notes li{margin:3px 0}
+  .foot{grid-column:1/-1;text-align:center;color:#9aa;font-size:11px;margin-top:6px}
+  .stack{display:flex;flex-direction:column;gap:18px}
+  .card h2.rowhead{display:flex;justify-content:space-between;align-items:center}
+  .dlbtn{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;
+    background:var(--navy);color:#fff;border:0;border-radius:5px;font-size:12px;
+    font-weight:600;cursor:pointer}
+  .dlbtn:hover{filter:brightness(1.12)}
+  .dlbtn .ico{font-size:13px;line-height:1}
+  .dlbtn[disabled]{opacity:.55;cursor:not-allowed}
+  .dltip{font-size:11px;color:#9aa;font-weight:400;margin-top:4px;text-align:right}
+</style>
+</head>
+<body>
+<header>
+  <h1>TimberTech Aluminum Framing — Stair Calculator</h1>
+  <p>MVP demo · BOM from Sheet1 (TTAF Stair Frame Options Rev1) · parametric Tier 1 + Tier 2 drawing</p>
+</header>
+
+<div class="wrap">
+  <!-- ============ INPUT ============ -->
+  <div class="card" id="inputCard">
+    <h2>Inputs</h2>
+
+    <label>Height input mode</label>
+    <div class="seg" id="modeSeg">
+      <button data-mode="rise" class="on">Total rise</button>
+      <button data-mode="steps">Step count</button>
+    </div>
+
+    <div id="riseBlock">
+      <label>Total rise <span class="hint">(inches, top of deck/porch to ground)</span></label>
+      <input type="number" id="totalRise" value="108" min="14" max="134" step="0.25">
+    </div>
+
+    <div id="stepsBlock" style="display:none">
+      <label>Number of steps <span class="hint">(3–18)</span></label>
+      <input type="number" id="stepCount" value="15" min="3" max="18" step="1">
+    </div>
+
+    <label>Stair width <span class="hint">(design in 4-ft increments for efficiency)</span></label>
+    <div class="row2">
+      <input type="number" id="width" value="48" min="24" step="0.5">
+      <select id="widthUnit">
+        <option value="in" selected>inches</option>
+        <option value="ft">feet</option>
+      </select>
+    </div>
+    <div class="chips" id="widthChips">
+      <span class="chip" data-in="48">4 ft</span>
+      <span class="chip" data-in="96">8 ft</span>
+      <span class="chip" data-in="144">12 ft</span>
+      <span class="chip" data-in="192">16 ft</span>
+    </div>
+
+    <label>Top stair attachment</label>
+    <select id="attach">
+      <option>Flush step (level with deck)</option>
+      <option selected>Drop step (attached to posts)</option>
+      <option>Drop step (suspended)</option>
+    </select>
+
+    <label>Project name <span class="hint">(optional)</span></label>
+    <input type="text" id="projName" placeholder="e.g. 15 Step Stairs">
+
+    <button class="go" id="calcBtn">Calculate</button>
+
+    <div class="alert" id="alertBox"></div>
+  </div>
+
+  <!-- ============ OUTPUT ============ -->
+  <div class="stack">
+    <div class="card">
+      <h2 class="rowhead">Result
+        <button class="dlbtn" id="downloadBtn" title="Demo only — export not wired up yet">
+          <span class="ico">&#8615;</span> Download (xlsx / PDF)
+        </button>
+      </h2>
+      <div class="dltip" id="dlTip" style="display:none">Demo placeholder — export will produce the editable xlsx + print PDF in the build.</div>
+      <div id="resultMeta" class="placeholder">Enter inputs and press Calculate.</div>
+    </div>
+
+    <div class="card" id="bomCard" style="display:none">
+      <h2>Bill of Materials</h2>
+      <div id="bomTable"></div>
+      <ul class="notes" id="bomNotes"></ul>
+    </div>
+
+    <div class="card" id="drawCard" style="display:none">
+      <h2>Drawing</h2>
+      <div class="draw">
+        <div class="panel"><h3>Tier 1 — Side elevation</h3><div id="sideSvg"></div></div>
+        <div class="panel"><h3>Tier 2 — Plan / width view</h3><div id="planSvg"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">Demo only · attachment type affects drawing/notes only · posts held at Sheet1 baseline · these rules are provisional pending §7 confirmation.</div>
+</div>
+
+<script>
+/* ===================== DATA (hardcoded from Sheet1) ===================== */
+const SHEET1_BOMS = {"3": [{"desc": "Rim Joist/Ledger (12')","pn": "TFRJ12B","qty": 1},{"desc": "Stair Tread Kit (47.75\" Length)","pn": "TFSTK48B","qty": 3},{"desc": "Stair Tread Bracket Kit (L+R)","pn": "TFSTBKB","qty": 3},{"desc": "Stair Landing Bracket","pn": "TFSTCLIPB","qty": 4},{"desc": "1/4\"-20 x 1.25\" Hex Head Screw","pn": "TF50HEX","qty": 1}],"4": [{"desc": "Rim Joist/Ledger (12')","pn": "TFRJ12B","qty": 1},{"desc": "Stair Tread Kit (47.75\" Length)","pn": "TFSTK48B","qty": 4},{"desc": "Stair Tread Bracket Kit (L+R)","pn": "TFSTBKB","qty": 4},{"desc": "Stair Landing Bracket","pn": "TFSTCLIPB","qty": 4},{"desc": "1/4\"-20 x 1.25\" Hex Head Screw","pn": "TF50HEX","qty": 2}],"5": [{"desc": "Rim Joist/Ledger (12')","pn": "TFRJ12B","qty": 1},{"desc": "Stair Tread Kit (47.75\" Length)","pn": "TFSTK48B","qty": 5},{"desc": "Stair Tread Bracket Kit (L+R)","pn": "TFSTBKB","qty": 5},{"desc": "Stair Landing Bracket","pn": "TFSTCLIPB","qty": 4},{"desc": "1/4\"-20 x 1.25\" Hex Head Screw","pn": "TF50HEX","qty": 2}],"6": [{"desc": "Rim Joist/Ledger (16')","pn": "TFRJ16B","qty": 1},{"desc": "Stair Tread Kit (47.75\" Length)","pn": "TFSTK48B","qty": 6},{"desc": "Stair Tread Bracket Kit (L+R)","pn": "TFSTBKB","qty": 6},{"desc": "Stair Landing Bracket","pn": "TFSTCLIPB","qty": 4},{"desc": "1/4\"-20 x 1.25\" Hex Head Screw","pn": "TF50HEX","qty": 2}],"7": [{"desc": "Rim Joist/Ledger (16')","pn": "TFRJ16B","qty": 1},{"desc": "Stair Tread Kit (47.75\" Length)","pn": "TFSTK48B","qty": 7},{"desc": "Stair Tread Bracket Kit (L+R)","pn": "TFSTBKB","qty": 7},{"desc": "Stair Landing Bracket","pn": "TFSTCLIPB","qty": 4},{"desc": "1/4\"-20 x 1.25\" Hex Head Screw","pn": "TF50HEX","qty": 2}],"8": [{"desc": "Rim Joist/Ledger (20')","pn": "TFRJ20B","qty": 1},{"desc": "Stair Tread Kit (47.75\" Length)","pn": "TFSTK48B","qty": 8},{"desc": "Stair Tread Bracket Kit (L+R)","pn": "TFSTBKB","qty": 8},{"desc": "Stair Landing Bracket","pn": "TFSTCLIPB","qty": 4},{"desc": "1/4\"-20 x 1.25\" Hex Head Screw","pn": "TF50HEX","qty": 2}],"9": [{"desc": "Rim Joist/Ledger (20')","pn": "TFRJ20B","qty": 1},{"desc": "Stair Tread Kit (47.75\" Length)","pn": "TFSTK48B","qty": 9},{"desc": "Stair Tread Bracket Kit (L+R)","pn": "TFSTBKB","qty": 9},{"desc": "Stair Landing Bracket","pn": "TFSTCLIPB","qty": 4},{"desc": "1/4\"-20 x 1.25\" Hex Head Screw","pn": "TF50HEX","qty": 2}],"10": [{"desc": "Rim Joist/Ledger (12')","pn": "TFRJ12B","qty": 2},{"desc": "Stair Tread Kit (47.75\" Length)","pn": "TFSTK48B","qty": 10},{"desc": "Stair Tread Bracket Kit (L+R)","pn": "TFSTBKB","qty": 10},{"desc": "Stair Landing Bracket","pn": "TFSTCLIPB","qty": 8},{"desc": "1/4\"-20 x 1.25\" Hex Head Screw","pn": "TF50HEX","qty": 3},{"desc": "Post (5.5\" x 5.5\" x 120\")","pn": "TFPOST10B","qty": 1},{"desc": "Post Cap/Post Base","pn": "TFPCB","qty": 4},{"desc": "1/4\"-20 x 1\" Flat Head Screw","pn": "TF50FLAT","qty": 1}],"11": [{"desc": "Rim Joist/Ledger (12')","pn": "TFRJ12B","qty": 2},{"desc": "Stair Tread Kit (47.75\" Length)","pn": "TFSTK48B","qty": 11},{"desc": "Stair Tread Bracket Kit (L+R)","pn": "TFSTBKB","qty": 11},{"desc": "Stair Landing Bracket","pn": "TFSTCLIPB","qty": 8},{"desc": "1/4\"-20 x 1.25\" Hex Head Screw","pn": "TF50HEX","qty": 3},{"desc": "Post (5.5\" x 5.5\" x 120\")","pn": "TFPOST10B","qty": 1},{"desc": "Post Cap/Post Base","pn": "TFPCB","qty": 4},{"desc": "1/4\"-20 x 1\" Flat Head Screw","pn": "TF50FLAT","qty": 1}],"12": [{"desc": "Rim Joist/Ledger (16')","pn": "TFRJ16B","qty": 2},{"desc": "Stair Tread Kit (47.75\" Length)","pn": "TFSTK48B","qty": 12},{"desc": "Stair Tread Bracket Kit (L+R)","pn": "TFSTBKB","qty": 12},{"desc": "Stair Landing Bracket","pn": "TFSTCLIPB","qty": 8},{"desc": "1/4\"-20 x 1.25\" Hex Head Screw","pn": "TF50HEX","qty": 3},{"desc": "Post (5.5\" x 5.5\" x 120\")","pn": "TFPOST10B","qty": 1},{"desc": "Post Cap/Post Base","pn": "TFPCB","qty": 4},{"desc": "1/4\"-20 x 1\" Flat Head Screw","pn": "TF50FLAT","qty": 1}],"13": [{"desc": "Rim Joist/Ledger (16')","pn": "TFRJ16B","qty": 2},{"desc": "Stair Tread Kit (47.75\" Length)","pn": "TFSTK48B","qty": 13},{"desc": "Stair Tread Bracket Kit (L+R)","pn": "TFSTBKB","qty": 13},{"desc": "Stair Landing Bracket","pn": "TFSTCLIPB","qty": 8},{"desc": "1/4\"-20 x 1.25\" Hex Head Screw","pn": "TF50HEX","qty": 4},{"desc": "Post (5.5\" x 5.5\" x 120\")","pn": "TFPOST10B","qty": 1},{"desc": "Post Cap/Post Base","pn": "TFPCB","qty": 4},{"desc": "1/4\"-20 x 1\" Flat Head Screw","pn": "TF50FLAT","qty": 1}],"14": [{"desc": "Rim Joist/Ledger (16')","pn": "TFRJ16B","qty": 2},{"desc": "Stair Tread Kit (47.75\" Length)","pn": "TFSTK48B","qty": 14},{"desc": "Stair Tread Bracket Kit (L+R)","pn": "TFSTBKB","qty": 14},{"desc": "Stair Landing Bracket","pn": "TFSTCLIPB","qty": 8},{"desc": "1/4\"-20 x 1.25\" Hex Head Screw","pn": "TF50HEX","qty": 4},{"desc": "Post (5.5\" x 5.5\" x 120\")","pn": "TFPOST10B","qty": 1},{"desc": "Post Cap/Post Base","pn": "TFPCB","qty": 4},{"desc": "1/4\"-20 x 1\" Flat Head Screw","pn": "TF50FLAT","qty": 1}],"15": [{"desc": "Rim Joist/Ledger (20')","pn": "TFRJ20B","qty": 2},{"desc": "Stair Tread Kit (47.75\" Length)","pn": "TFSTK48B","qty": 15},{"desc": "Stair Tread Bracket Kit (L+R)","pn": "TFSTBKB","qty": 15},{"desc": "Stair Landing Bracket","pn": "TFSTCLIPB","qty": 8},{"desc": "1/4\"-20 x 1.25\" Hex Head Screw","pn": "TF50HEX","qty": 4},{"desc": "Post (5.5\" x 5.5\" x 120\")","pn": "TFPOST10B","qty": 1},{"desc": "Post Cap/Post Base","pn": "TFPCB","qty": 4},{"desc": "1/4\"-20 x 1\" Flat Head Screw","pn": "TF50FLAT","qty": 1}],"16": [{"desc": "Rim Joist/Ledger (20')","pn": "TFRJ20B","qty": 2},{"desc": "Stair Tread Kit (47.75\" Length)","pn": "TFSTK48B","qty": 16},{"desc": "Stair Tread Bracket Kit (L+R)","pn": "TFSTBKB","qty": 16},{"desc": "Stair Landing Bracket","pn": "TFSTCLIPB","qty": 8},{"desc": "1/4\"-20 x 1.25\" Hex Head Screw","pn": "TF50HEX","qty": 4},{"desc": "Post (5.5\" x 5.5\" x 120\")","pn": "TFPOST10B","qty": 1},{"desc": "Post Cap/Post Base","pn": "TFPCB","qty": 4},{"desc": "1/4\"-20 x 1\" Flat Head Screw","pn": "TF50FLAT","qty": 1}],"17": [{"desc": "Rim Joist/Ledger (20')","pn": "TFRJ20B","qty": 2},{"desc": "Stair Tread Kit (47.75\" Length)","pn": "TFSTK48B","qty": 17},{"desc": "Stair Tread Bracket Kit (L+R)","pn": "TFSTBKB","qty": 17},{"desc": "Stair Landing Bracket","pn": "TFSTCLIPB","qty": 8},{"desc": "1/4\"-20 x 1.25\" Hex Head Screw","pn": "TF50HEX","qty": 4},{"desc": "Post (5.5\" x 5.5\" x 120\")","pn": "TFPOST10B","qty": 1},{"desc": "Post Cap/Post Base","pn": "TFPCB","qty": 4},{"desc": "1/4\"-20 x 1\" Flat Head Screw","pn": "TF50FLAT","qty": 1}],"18": [{"desc": "Rim Joist/Ledger (20')","pn": "TFRJ20B","qty": 2},{"desc": "Stair Tread Kit (47.75\" Length)","pn": "TFSTK48B","qty": 18},{"desc": "Stair Tread Bracket Kit (L+R)","pn": "TFSTBKB","qty": 18},{"desc": "Stair Landing Bracket","pn": "TFSTCLIPB","qty": 8},{"desc": "1/4\"-20 x 1.25\" Hex Head Screw","pn": "TF50HEX","qty": 4},{"desc": "Post (5.5\" x 5.5\" x 120\")","pn": "TFPOST10B","qty": 1},{"desc": "Post Cap/Post Base","pn": "TFPCB","qty": 4},{"desc": "1/4\"-20 x 1\" Flat Head Screw","pn": "TF50FLAT","qty": 1}]};
+
+/* ===================== CONSTANTS ===================== */
+const RUN=10.75, RISE_NOM=7.25, ANGLE=34.0, TREAD_W=47.75;
+const RISE_MIN=7.0, RISE_MAX=7.5;
+// Sheet1 height-range lookup (step -> [min,max] total height inches)
+const HEIGHT_RANGES={3:[20,21.5],4:[27,29],5:[34,36.5],6:[41,44],7:[48,51.5],8:[55,59],9:[62,66.5],10:[69,74],11:[76,81.5],12:[83,89],13:[90,96.5],14:[97,104],15:[104,111.5],16:[111,119],17:[118,126.5],18:[125,134]};
+
+/* ===================== ENGINE ===================== */
+function stepsFromRise(total){
+  // start near nominal, clamp per-step rise into [7.0,7.5]
+  let n=Math.round(total/RISE_NOM);
+  n=Math.max(3,Math.min(18,n));
+  let rise=total/n;
+  while(rise>RISE_MAX && n<18){n++;rise=total/n;}
+  while(rise<RISE_MIN && n>3){n--;rise=total/n;}
+  return {n, rise:+(rise.toFixed(3))};
+}
+function frameHeight(n){return +(20.75+(n-3)*7.25).toFixed(2);}
+function widthPlan(widthIn){
+  const sections=Math.ceil(widthIn/48);
+  const stringers=sections+1;
+  const middle=stringers-2;
+  const custom=(Math.abs(widthIn-sections*48)>0.001) && (widthIn%48!==0);
+  return {sections,stringers,middle,custom};
+}
+
+// Build scaled BOM from base Sheet1 block + width rules
+function buildBOM(n, wp){
+  const base=SHEET1_BOMS[String(n)].map(p=>({...p, note:""}));
+  const out=base.map(p=>({...p}));
+  const find=pn=>out.find(p=>p.pn===pn);
+
+  // Tread kits: N x sections  (base already has N for 1 section)
+  const tk=find("TFSTK48B"); if(tk){tk.qty=n*wp.sections; if(wp.sections>1)tk.note=`${n} per section \u00D7 ${wp.sections} sections`;}
+
+  // L+R bracket kits: stays N (outer stringers) — base already N
+  const lr=find("TFSTBKB"); if(lr){lr.qty=n; }
+
+  // Middle tread brackets: N x middle stringers (added line)
+  if(wp.middle>0){
+    out.push({desc:"Stair Tread Bracket (Middle)",pn:"TFSTBMB",qty:n*wp.middle,
+      note:`${n} \u00D7 ${wp.middle} middle stringer${wp.middle>1?'s':''}`,added:true});
+  }
+  return out;
+}
+
+/* ===================== DRAWING (parametric, fully dimensioned) =====================
+   Ported from ttaf_stair_drawing_demo.html \u2014 engineering-style side elevation + plan,
+   built as DOM SVG nodes with witness lines / arrowheads / TYP callouts. */
+const NS="http://www.w3.org/2000/svg";
+const ARROW=8;          // arrowhead length px
+function el(tag,attrs){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);return e;}
+function add(p,tag,attrs){const e=el(tag,attrs);p.appendChild(e);return e;}
+function txt(p,x,y,s,attrs){const t=add(p,"text",Object.assign({x,y,"font-size":11,"font-family":"Consolas,monospace",fill:"#222"},attrs||{}));t.textContent=s;return t;}
+// arrowhead at point (x,y) pointing along unit (ux,uy)
+function arrowhead(p,x,y,ux,uy){
+  const px=-uy,py=ux,w=3.2;
+  const x1=x-ux*ARROW+px*w, y1=y-uy*ARROW+py*w;
+  const x2=x-ux*ARROW-px*w, y2=y-uy*ARROW-py*w;
+  add(p,"path",{d:`M ${x} ${y} L ${x1} ${y1} L ${x2} ${y2} Z`,fill:"var(--dim)"});
+}
+// linear dimension between pixel pts P1,P2, offset perpendicular by `off` (sign = side)
+function dim(g,x1,y1,x2,y2,off,label,opt){
+  opt=opt||{};
+  let dx=x2-x1,dy=y2-y1,len=Math.hypot(dx,dy);if(len<0.001)return;
+  const ux=dx/len,uy=dy/len, px=-uy,py=ux;            // perpendicular
+  const ax1=x1+px*off, ay1=y1+py*off, ax2=x2+px*off, ay2=y2+py*off;
+  const wit=add(g,"g",{stroke:"var(--dim)","stroke-width":.7});
+  const gap=3;
+  add(wit,"line",{x1:x1+px*(off>0?gap:-gap),y1:y1+py*(off>0?gap:-gap),x2:ax1+px*4*Math.sign(off||1),y2:ay1+py*4*Math.sign(off||1)});
+  add(wit,"line",{x1:x2+px*(off>0?gap:-gap),y1:y2+py*(off>0?gap:-gap),x2:ax2+px*4*Math.sign(off||1),y2:ay2+py*4*Math.sign(off||1)});
+  add(g,"line",{x1:ax1,y1:ay1,x2:ax2,y2:ay2,stroke:"var(--dim)","stroke-width":.9});
+  arrowhead(g,ax1,ay1,ux,uy);
+  arrowhead(g,ax2,ay2,-ux,-uy);
+  const mx=(ax1+ax2)/2+px*(opt.lpush||0), my=(ay1+ay2)/2+py*(opt.lpush||0);
+  let ang=Math.atan2(dy,dx)*180/Math.PI; if(ang>90||ang<-90)ang+=180;
+  const t=txt(g,mx,my-3,label,{"text-anchor":"middle",fill:"var(--dim)","font-weight":"bold"});
+  t.setAttribute("transform",`rotate(${ang.toFixed(2)} ${mx} ${my})`);
+}
+
+/* Side elevation */
+function sideView(n,r){
+  const totalRun=RUN*n, totalRise=r*n, stringer=Math.hypot(r,RUN)*n;
+  const padL=64,padR=140,padT=48,padB=78;
+  const sc=Math.min(820/totalRun, 360/totalRise);   // fit
+  const W=totalRun*sc+padL+padR, H=totalRise*sc+padT+padB;
+  const ox=padL, oy=H-padB;
+  const X=x=>ox+x*sc, Y=y=>oy-y*sc;
+  const svg=el("svg",{viewBox:`0 0 ${W.toFixed(0)} ${H.toFixed(0)}`});
+  add(svg,"line",{x1:X(0)-10,y1:Y(0),x2:X(totalRun)+10,y2:Y(0),stroke:"#999","stroke-width":1,"stroke-dasharray":"5 4"});
+  let d=`M ${X(0)} ${Y(0)} `;
+  for(let i=0;i<n;i++){d+=`L ${X(i*RUN)} ${Y((i+1)*r)} L ${X((i+1)*RUN)} ${Y((i+1)*r)} `;}
+  add(svg,"path",{d,fill:"none",stroke:"var(--ink)","stroke-width":2});
+  add(svg,"line",{x1:X(0),y1:Y(0),x2:X(totalRun),y2:Y(totalRise),stroke:"var(--accent)","stroke-width":2});
+  add(svg,"line",{x1:X(totalRun),y1:Y(totalRise),x2:X(totalRun),y2:Y(0),stroke:"var(--ink)","stroke-width":1.4});
+  dim(svg,X(0),Y(0),X(0),Y(r),-26,`${r.toFixed(2)}"  TYP`);
+  dim(svg,X(0),Y(r),X(RUN),Y(r),-22,`${RUN}"  TYP`);
+  dim(svg,X(0),Y(0),X(totalRun),Y(0),52,`TOTAL RUN  ${totalRun.toFixed(2)}"`);
+  dim(svg,X(totalRun),Y(0),X(totalRun),Y(totalRise),58,`TOTAL RISE  ${totalRise.toFixed(2)}"`);
+  dim(svg,X(0),Y(0),X(totalRun),Y(totalRise),-30,`STRINGER  ${stringer.toFixed(1)}"`,{lpush:0});
+  const aR=46, a2=ANGLE*Math.PI/180;
+  add(svg,"path",{d:`M ${X(0)+aR} ${Y(0)} A ${aR} ${aR} 0 0 0 ${X(0)+aR*Math.cos(a2)} ${Y(0)-aR*Math.sin(a2)}`,fill:"none",stroke:"var(--dim)","stroke-width":.9});
+  txt(svg,X(0)+aR+6,Y(0)-14,`${ANGLE}\u00B0`,{fill:"var(--dim)","font-weight":"bold"});
+  return {svg,sc};
+}
+
+/* Plan / width view \u2014 width expressed by stringer spacing */
+function planView(n,w,wp){
+  const totalRun=RUN*n;
+  const padL=58,padR=150,padT=46,padB=86;
+  const sc=Math.min(820/totalRun, 300/w);
+  const Wp=totalRun*sc+padL+padR, Hp=w*sc+padT+padB;
+  const ox=padL, oy=padT;
+  const X=x=>ox+x*sc, Y=y=>oy+y*sc;       // y down = across width
+  const svg=el("svg",{viewBox:`0 0 ${Wp.toFixed(0)} ${Hp.toFixed(0)}`});
+  add(svg,"rect",{x:X(0),y:Y(0),width:totalRun*sc,height:w*sc,fill:"#fdfaf2",stroke:"var(--ink)","stroke-width":1.6});
+  for(let i=1;i<n;i++){add(svg,"line",{x1:X(i*RUN),y1:Y(0),x2:X(i*RUN),y2:Y(w),stroke:"#cfcfcf","stroke-width":.8});}
+  const positions=[];
+  for(let s=0;s<wp.stringers;s++){positions.push(s/(wp.stringers-1)*w);}
+  positions.forEach((yp,idx)=>{
+    const outer=(idx===0||idx===wp.stringers-1);
+    add(svg,"line",{x1:X(0),y1:Y(yp),x2:X(totalRun),y2:Y(yp),stroke:outer?"var(--ink)":"var(--accent)","stroke-width":outer?2:1.8});
+  });
+  dim(svg,X(0),Y(w),X(RUN),Y(w),34,`${RUN}"  TYP`);
+  dim(svg,X(0),Y(w),X(totalRun),Y(w),60,`OVERALL  ${totalRun.toFixed(2)}"`);
+  dim(svg,X(totalRun),Y(0),X(totalRun),Y(w),64,`WIDTH  ${w}"`);
+  for(let s=1;s<positions.length;s++){
+    dim(svg,X(0),Y(positions[s-1]),X(0),Y(positions[s]),-26,`${(positions[s]-positions[s-1]).toFixed(1)}"`);
+  }
+  return {svg,sc};
+}
+
+/* 12" scale bar */
+function scaleBar(sc){
+  const px=12*sc;
+  const svg=el("svg",{viewBox:`0 0 ${px+90} 26`,style:`width:${(px+90).toFixed(0)}px;height:26px`});
+  add(svg,"rect",{x:0,y:6,width:px/2,height:7,fill:"#222"});
+  add(svg,"rect",{x:px/2,y:6,width:px/2,height:7,fill:"#fff",stroke:"#222","stroke-width":.8});
+  txt(svg,0,24,'0',{"font-size":9});
+  txt(svg,px,24,'12"',{"font-size":9,"text-anchor":"middle"});
+  txt(svg,px+8,17,'(scale ref)',{"font-size":9,fill:"#888"});
+  return svg;
+}
+
+/* ===================== UI ===================== */
+let mode="rise";
+const $=id=>document.getElementById(id);
+
+$("modeSeg").addEventListener("click",e=>{
+  const b=e.target.closest("button"); if(!b)return;
+  mode=b.dataset.mode;
+  [...$("modeSeg").children].forEach(x=>x.classList.toggle("on",x===b));
+  $("riseBlock").style.display = mode==="rise"?"block":"none";
+  $("stepsBlock").style.display = mode==="steps"?"block":"none";
+});
+$("widthChips").addEventListener("click",e=>{
+  const c=e.target.closest(".chip"); if(!c)return;
+  $("widthUnit").value="in"; $("width").value=c.dataset.in;
+  [...$("widthChips").children].forEach(x=>x.classList.toggle("on",x===c));
+});
+$("calcBtn").addEventListener("click",calculate);
+$("downloadBtn").addEventListener("click",()=>{
+  const t=$("dlTip"); t.style.display="block";
+  setTimeout(()=>{t.style.display="none";},4000);
+});
+
+function getWidthInches(){
+  let v=parseFloat($("width").value)||0;
+  return $("widthUnit").value==="ft"?v*12:v;
+}
+
+function calculate(){
+  const alertBox=$("alertBox"); alertBox.className="alert"; alertBox.textContent="";
+  let n, rise, riseMsg="";
+
+  if(mode==="rise"){
+    const tr=parseFloat($("totalRise").value);
+    if(!(tr>0)){showAlert("warn","Enter a valid total rise.");return;}
+    if(tr<HEIGHT_RANGES[3][0]||tr>HEIGHT_RANGES[18][1]){
+      showAlert("warn",`Total rise ${tr}" is outside the supported range (${HEIGHT_RANGES[3][0]}"\u2013${HEIGHT_RANGES[18][1]}", i.e. 3\u201318 steps).`);return;
+    }
+    const r=stepsFromRise(tr); n=r.n; rise=r.rise;
+    riseMsg=`Derived ${n} steps @ ${rise.toFixed(2)}" rise from ${tr}" total.`;
+  }else{
+    n=parseInt($("stepCount").value);
+    if(!(n>=3&&n<=18)){showAlert("warn","Step count must be 3\u201318.");return;}
+    rise=RISE_NOM;
+    riseMsg=`Using nominal ${RISE_NOM}" rise.`;
+  }
+
+  const widthIn=getWidthInches();
+  if(!(widthIn>=24)){showAlert("warn","Enter a width of at least 24\".");return;}
+  const wp=widthPlan(widthIn);
+
+  // alerts for width
+  if(wp.custom){
+    showAlert("warn",`Custom width (${widthIn}"): not a 4-ft increment. Treads must be cut to size to span between stringers. Consider ${(wp.sections*48)}" (${wp.sections*4} ft) for full pre-cut treads.`);
+  }else if(wp.sections>1){
+    showAlert("info",`${wp.sections}\u00D7 4-ft sections \u2014 ${wp.middle} middle stringer${wp.middle>1?'s':''} added with middle tread brackets.`);
+  }
+
+  const bom=buildBOM(n,wp);
+  renderMeta(n,rise,widthIn,wp,riseMsg);
+  renderBOM(bom,n,wp);
+  renderDrawings(n,rise,widthIn,wp);
+}
+
+function showAlert(kind,msg){const a=$("alertBox");a.className="alert "+kind;a.textContent=msg;}
+
+function renderMeta(n,rise,widthIn,wp,riseMsg){
+  const tr=(rise*n), tRun=(RUN*n), fh=frameHeight(n), str=Math.hypot(rise,RUN)*n;
+  $("resultMeta").innerHTML=`
+    <div class="meta">
+      <div class="box"><div class="k">Steps</div><div class="v">${n}</div></div>
+      <div class="box"><div class="k">Rise / step</div><div class="v">${rise.toFixed(2)}"</div></div>
+      <div class="box"><div class="k">Total rise</div><div class="v">${tr.toFixed(2)}"</div></div>
+      <div class="box"><div class="k">Frame height</div><div class="v">${fh}"</div></div>
+      <div class="box"><div class="k">Total run</div><div class="v">${tRun.toFixed(2)}"</div></div>
+      <div class="box"><div class="k">Stringer</div><div class="v">${str.toFixed(1)}"</div></div>
+      <div class="box"><div class="k">Width</div><div class="v">${widthIn}"</div></div>
+      <div class="box"><div class="k">Stringers</div><div class="v">${wp.stringers}${wp.middle?` (+${wp.middle})`:''}</div></div>
+    </div>
+    <div style="font-size:12.5px;color:#555">${riseMsg} Angle fixed at ${ANGLE}\u00B0, run ${RUN}"/step.</div>`;
+}
+
+function renderBOM(bom,n,wp){
+  let rows=bom.map(p=>`<tr class="${p.added?'added':''}">
+    <td class="pn">${p.pn}${p.added?'<span class="tag">width</span>':''}</td>
+    <td>${esc(p.desc)}</td>
+    <td class="qty">${p.qty}</td>
+    <td>${p.note?esc(p.note):''}</td></tr>`).join("");
+  $("bomTable").innerHTML=`<table>
+    <thead><tr><th>Item #</th><th>Description</th><th class="qty">Qty</th><th>Notes</th></tr></thead>
+    <tbody>${rows}</tbody></table>`;
+  const attach=$("attach").value;
+  const notes=[];
+  notes.push(`BOM base read from Sheet1 for ${n}-step assembly (authoritative).`);
+  if(wp.sections>1)notes.push(`Tread kits scaled to ${wp.sections} section(s); ${wp.middle} middle stringer(s) \u2192 TFSTBMB middle brackets added.`);
+  if(wp.custom)notes.push(`Custom width: treads cut to size between stringers.`);
+  notes.push(`Top stair attachment: <b>${esc(attach)}</b> (affects drawing/notes only in this demo).`);
+  notes.push(`Posts/post-caps held at Sheet1 baseline regardless of width (provisional).`);
+  $("bomNotes").innerHTML=notes.map(x=>`<li>${x}</li>`).join("");
+  $("bomCard").style.display="block";
+}
+
+function renderDrawings(n,rise,widthIn,wp){
+  const side=sideView(n,rise), plan=planView(n,widthIn,wp);
+  const sp=$("sideSvg"); sp.innerHTML=""; sp.appendChild(side.svg); sp.appendChild(scaleBar(side.sc));
+  const pp=$("planSvg"); pp.innerHTML=""; pp.appendChild(plan.svg); pp.appendChild(scaleBar(plan.sc));
+  $("drawCard").style.display="block";
+}
+
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+// run once with defaults
+calculate();
+</script>
+</body>
+</html>
