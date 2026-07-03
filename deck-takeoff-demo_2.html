@@ -51,6 +51,9 @@
     grid-template-columns:340px 1fr 360px;
     height:calc(100% - 52px);
   }
+  /* Stakeholder view: hide the Pipeline Payload panel (code kept intact) */
+  .layout.hide-json{grid-template-columns:340px 1fr;}
+  .layout.hide-json .panel.json{display:none;}
   @media(max-width:1100px){
     .layout{grid-template-columns:1fr;height:auto;overflow:auto;}
     .panel{height:auto !important;}
@@ -185,7 +188,7 @@
   <span class="right">Sketch a rough shape · type the real dimensions · drop posts &amp; features</span>
 </div>
 
-<div class="layout">
+<div class="layout hide-json">
   <!-- ============ FORM ============ -->
   <div class="panel form" id="formPanel">
     <div class="form">
