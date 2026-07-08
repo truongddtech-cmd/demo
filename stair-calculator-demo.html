@@ -50,6 +50,8 @@
   td.qty,th.qty{text-align:center;width:54px}
   td.pn{font-family:Consolas,monospace;color:var(--navy);white-space:nowrap}
   tr.added td{background:#fdf4f3}
+  tr.grp td{background:var(--light);color:var(--navy);font-weight:700;font-size:11px;
+    letter-spacing:.05em;text-transform:uppercase;border-top:2px solid var(--navy)}
   .tag{display:inline-block;font-size:10px;background:var(--accent);color:#fff;
     padding:1px 6px;border-radius:8px;margin-left:6px;vertical-align:middle}
   .draw{display:grid;grid-template-columns:1fr;gap:16px;margin-top:6px}
@@ -495,7 +497,11 @@ $("widthChips").addEventListener("click",e=>{
   $("widthUnit").value="in"; $("width").value=c.dataset.in;
   [...$("widthChips").children].forEach(x=>x.classList.toggle("on",x===c));
 });
-$("calcBtn").addEventListener("click",calculate);
+$("calcBtn").addEventListener("click",()=>calculate(true));
+// Pressing Enter in any numeric input runs Calculate (user-initiated, so it also snaps the box).
+["totalRise","stepCount","width"].forEach(id=>{
+  $(id).addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();calculate(true);}});
+});
 $("downloadBtn").addEventListener("click",()=>{
   const t=$("dlTip"); t.style.display="block";
   setTimeout(()=>{t.style.display="none";},4000);
@@ -506,7 +512,7 @@ function getWidthInches(){
   return $("widthUnit").value==="ft"?v*12:v;
 }
 
-function calculate(){
+function calculate(userInitiated){
   const alertBox=$("alertBox"); alertBox.className="alert"; alertBox.textContent="";
   let n, rise, riseMsg="";
 
@@ -521,6 +527,12 @@ function calculate(){
     riseMsg = r.delta===0
       ? `Exact fit: ${n} steps @ ${rise.toFixed(2)}" rise = ${r.achieved}" total.`
       : `Rounded to ${n} steps @ ${rise.toFixed(2)}" rise \u2192 <b>${r.achieved}" buildable</b> (${sign}${r.delta}" vs ${tr}" entered).`;
+    // On a user-triggered calculate, snap the input box itself to the nearest buildable
+    // height so it matches the Total-rise result, and explain the adjustment via a toast.
+    if(userInitiated && r.delta!==0){
+      $("totalRise").value=r.achieved;
+      flash(`Total rise adjusted to ${r.achieved}" \u2014 nearest buildable height (${n} steps \u00d7 ${rise.toFixed(2)}"). You entered ${tr}".`);
+    }
   }else{
     n=parseInt($("stepCount").value);
     if(!(n>=3&&n<=18)){showAlert("warn","Step count must be 3\u201318.");return;}
@@ -564,11 +576,19 @@ function renderMeta(n,rise,widthIn,wp,riseMsg){
 }
 
 function renderBOM(bom,n,wp){
-  let rows=bom.map(p=>`<tr class="${p.added?'added':''}">
+  // Posts + post hardware are broken out into their own section so the user can
+  // clearly see the extra parts a taller (10+ step) assembly adds.
+  const isPost=pn=>/^TFPOST/.test(pn)||pn==="TFPCB"||pn==="TF50FLAT";
+  const frame=bom.filter(p=>!isPost(p.pn));
+  const posts=bom.filter(p=>isPost(p.pn));
+  const rowHTML=p=>`<tr class="${p.added?'added':''}">
     <td class="pn">${p.pn}${p.added?'<span class="tag">width</span>':''}</td>
     <td>${esc(p.desc)}</td>
     <td class="qty">${p.qty}</td>
-    <td>${p.note?esc(p.note):''}</td></tr>`).join("");
+    <td>${p.note?esc(p.note):''}</td></tr>`;
+  const sectionRow=label=>`<tr class="grp"><td colspan="4">${label}</td></tr>`;
+  let rows=sectionRow("Stair Frame")+frame.map(rowHTML).join("");
+  if(posts.length)rows+=sectionRow("Posts &amp; Post Hardware")+posts.map(rowHTML).join("");
   $("bomTable").innerHTML=`<table>
     <thead><tr><th>Item #</th><th>Description</th><th class="qty">Qty</th><th>Notes</th></tr></thead>
     <tbody>${rows}</tbody></table>`;
@@ -578,7 +598,8 @@ function renderBOM(bom,n,wp){
   if(wp.sections>1)notes.push(`Tread kits scaled to ${wp.sections} section(s); ${wp.middle} middle stringer(s) \u2192 TFSTBMB middle brackets added.`);
   if(wp.custom)notes.push(`Custom width: treads cut to size between stringers.`);
   notes.push(`Top stair attachment: <b>${esc(attach)}</b> (affects drawing/notes only in this demo).`);
-  notes.push(`Posts/post-caps per Detailed-sheet baseline regardless of width (provisional).`);
+  if(posts.length)notes.push(`This assembly adds <b>posts &amp; post hardware</b> (shown as a separate section above); posts/post-caps per Detailed-sheet baseline regardless of width (provisional).`);
+  else notes.push(`No posts required for this assembly (posts are introduced at 10 steps).`);
   $("bomNotes").innerHTML=notes.map(x=>`<li>${x}</li>`).join("");
   $("bomCard").style.display="block";
 }
