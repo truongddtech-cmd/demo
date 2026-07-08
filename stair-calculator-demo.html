@@ -70,16 +70,52 @@
   .dlbtn .ico{font-size:13px;line-height:1}
   .dlbtn[disabled]{opacity:.55;cursor:not-allowed}
   .dltip{font-size:11px;color:#9aa;font-weight:400;margin-top:4px;text-align:right}
+  /* ---- auth + projects (mock) ---- */
+  .hbar{display:flex;justify-content:space-between;align-items:center;gap:16px;max-width:1180px;margin:0 auto}
+  .auth{display:flex;align-items:center;gap:10px;flex-shrink:0}
+  .auth .who{font-size:12px;opacity:.9}
+  .authbtn{background:#fff;color:var(--navy);border:0;border-radius:5px;padding:7px 12px;font-size:12.5px;font-weight:600;cursor:pointer}
+  .authbtn.ghost{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.5)}
+  .leftcol{display:flex;flex-direction:column;gap:18px}
+  .rowactions{display:flex;gap:8px;align-items:center}
+  .dlbtn.ghostbtn{background:var(--green)}
+  #projList .empty{color:#999;font-size:12.5px;padding:8px 2px}
+  .proj{display:flex;justify-content:space-between;align-items:center;gap:8px;border:1px solid var(--line);border-radius:6px;padding:8px 10px;margin-bottom:8px}
+  .proj .pn2{font-weight:600;font-size:13px;color:var(--navy)}
+  .proj .psub{font-size:11px;color:var(--grey);margin-top:2px}
+  .proj .pacts{display:flex;gap:6px;flex-shrink:0}
+  .proj .pacts button{border:1px solid var(--line);background:#fff;border-radius:5px;padding:5px 9px;font-size:11.5px;cursor:pointer}
+  .proj .pacts .del{color:var(--accent);border-color:#e8b7b1}
+  .modal{display:none;position:fixed;inset:0;background:rgba(20,30,45,.55);z-index:50;align-items:center;justify-content:center;padding:16px}
+  .mbox{background:#fff;border-radius:10px;width:340px;max-width:100%;padding:18px;box-shadow:0 18px 50px rgba(0,0,0,.3)}
+  .mbox input{width:100%;padding:8px 9px;border:1px solid var(--line);border-radius:5px;font-size:13px;background:#fff}
+  .mhead{display:flex;justify-content:space-between;align-items:center;font-weight:700;color:var(--navy);font-size:15px}
+  .mhead .x{border:0;background:none;font-size:20px;cursor:pointer;color:#999;line-height:1}
+  .mock-note{background:#fff5e6;border:1px solid #f0c070;color:#92600a;font-size:11px;border-radius:6px;padding:7px 9px;margin:10px 0}
+  .tabs{display:flex;border:1px solid var(--line);border-radius:5px;overflow:hidden;margin-bottom:6px}
+  .tabs button{flex:1;padding:7px;border:0;background:#fff;cursor:pointer;font-size:12.5px}
+  .tabs button.on{background:var(--navy);color:#fff;font-weight:600}
+  .mbox .err{color:var(--accent);font-size:12px;min-height:16px;margin-top:6px}
+  .or{text-align:center;color:#999;font-size:11px;margin:12px 0 8px}
+  .gbtn{width:100%;padding:10px;border:1px solid var(--line);border-radius:6px;background:#fff;cursor:pointer;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px}
+  .gbtn .gg{display:inline-flex;width:18px;height:18px;align-items:center;justify-content:center;border-radius:50%;background:#4285F4;color:#fff;font-weight:700;font-size:12px}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--navy);color:#fff;padding:9px 16px;border-radius:6px;font-size:12.5px;z-index:60;box-shadow:0 8px 24px rgba(0,0,0,.25)}
 </style>
 </head>
 <body>
 <header>
-  <h1>Aluminum Framing — Stair Calculator</h1>
-  <p>MVP demo · BOM from Sheet1 (Stair Frame Options) · parametric Tier 1 + Tier 2 drawing</p>
+  <div class="hbar">
+    <div class="htitle">
+      <h1>Aluminum Framing — Stair Calculator</h1>
+      <p>MVP demo · BOM from per-step Detailed sheets (Stair Frame Options) · parametric Tier 1 + Tier 2 drawing</p>
+    </div>
+    <div class="auth" id="authArea"></div>
+  </div>
 </header>
 
 <div class="wrap">
   <!-- ============ INPUT ============ -->
+  <div class="leftcol">
   <div class="card" id="inputCard">
     <h2>Inputs</h2>
 
@@ -90,8 +126,8 @@
     </div>
 
     <div id="riseBlock">
-      <label>Total rise <span class="hint">(inches, top of deck/porch to ground)</span></label>
-      <input type="number" id="totalRise" value="108" min="14" max="134" step="0.25">
+      <label>Total rise <span class="hint">(inches; rounded to nearest buildable height @ 7.0/7.25/7.5" per step)</span></label>
+      <input type="number" id="totalRise" value="108" min="21" max="135" step="0.25">
     </div>
 
     <div id="stepsBlock" style="display:none">
@@ -129,13 +165,24 @@
     <div class="alert" id="alertBox"></div>
   </div>
 
+  <div class="card" id="projectsCard" style="display:none">
+    <h2>My Projects</h2>
+    <div id="projList"></div>
+  </div>
+  </div><!-- /leftcol -->
+
   <!-- ============ OUTPUT ============ -->
   <div class="stack">
     <div class="card">
       <h2 class="rowhead">Result
-        <button class="dlbtn" id="downloadBtn" title="Demo only — export not wired up yet">
-          <span class="ico">&#8615;</span> Download (xlsx / PDF)
-        </button>
+        <span class="rowactions">
+          <button class="dlbtn ghostbtn" id="saveBtn" disabled title="Sign in to save projects">
+            <span class="ico">&#128190;</span> Save project
+          </button>
+          <button class="dlbtn" id="downloadBtn" title="Demo only — export not wired up yet">
+            <span class="ico">&#8615;</span> Download (xlsx / PDF)
+          </button>
+        </span>
       </h2>
       <div class="dltip" id="dlTip" style="display:none">Demo placeholder — export will produce the editable xlsx + print PDF in the build.</div>
       <div id="resultMeta" class="placeholder">Enter inputs and press Calculate.</div>
@@ -152,32 +199,63 @@
       <div class="draw">
         <div class="panel"><h3>Tier 1 — Side elevation</h3><div id="sideSvg"></div></div>
         <div class="panel"><h3>Tier 2 — Plan / width view</h3><div id="planSvg"></div></div>
+        <!-- Tier 3 temporarily hidden -->
+        <div class="panel" id="isoPanel" style="display:none"><h3>Tier 3 — 3D isometric (schematic)</h3><div id="isoSvg"></div></div>
       </div>
     </div>
   </div>
 
-  <div class="foot">Demo only · attachment type affects drawing/notes only · posts held at Sheet1 baseline · these rules are provisional pending §7 confirmation.</div>
+  <div class="foot">Demo only · attachment type affects drawing/notes only · posts/caps per Detailed-sheet baseline · these rules are provisional pending §7 confirmation.</div>
 </div>
 
 <script>
-/* ===================== DATA (hardcoded from Sheet1) ===================== */
-const SHEET1_BOMS = {"3": [{"desc": "Rim Joist/Ledger (12')","pn": "TFRJ12B","qty": 1},{"desc": "Stair Tread Kit (47.75\" Length)","pn": "TFSTK48B","qty": 3},{"desc": "Stair Tread Bracket Kit (L+R)","pn": "TFSTBKB","qty": 3},{"desc": "Stair Landing Bracket","pn": "TFSTCLIPB","qty": 4},{"desc": "1/4\"-20 x 1.25\" Hex Head Screw","pn": "TF50HEX","qty": 1}],"4": [{"desc": "Rim Joist/Ledger (12')","pn": "TFRJ12B","qty": 1},{"desc": "Stair Tread Kit (47.75\" Length)","pn": "TFSTK48B","qty": 4},{"desc": "Stair Tread Bracket Kit (L+R)","pn": "TFSTBKB","qty": 4},{"desc": "Stair Landing Bracket","pn": "TFSTCLIPB","qty": 4},{"desc": "1/4\"-20 x 1.25\" Hex Head Screw","pn": "TF50HEX","qty": 2}],"5": [{"desc": "Rim Joist/Ledger (12')","pn": "TFRJ12B","qty": 1},{"desc": "Stair Tread Kit (47.75\" Length)","pn": "TFSTK48B","qty": 5},{"desc": "Stair Tread Bracket Kit (L+R)","pn": "TFSTBKB","qty": 5},{"desc": "Stair Landing Bracket","pn": "TFSTCLIPB","qty": 4},{"desc": "1/4\"-20 x 1.25\" Hex Head Screw","pn": "TF50HEX","qty": 2}],"6": [{"desc": "Rim Joist/Ledger (16')","pn": "TFRJ16B","qty": 1},{"desc": "Stair Tread Kit (47.75\" Length)","pn": "TFSTK48B","qty": 6},{"desc": "Stair Tread Bracket Kit (L+R)","pn": "TFSTBKB","qty": 6},{"desc": "Stair Landing Bracket","pn": "TFSTCLIPB","qty": 4},{"desc": "1/4\"-20 x 1.25\" Hex Head Screw","pn": "TF50HEX","qty": 2}],"7": [{"desc": "Rim Joist/Ledger (16')","pn": "TFRJ16B","qty": 1},{"desc": "Stair Tread Kit (47.75\" Length)","pn": "TFSTK48B","qty": 7},{"desc": "Stair Tread Bracket Kit (L+R)","pn": "TFSTBKB","qty": 7},{"desc": "Stair Landing Bracket","pn": "TFSTCLIPB","qty": 4},{"desc": "1/4\"-20 x 1.25\" Hex Head Screw","pn": "TF50HEX","qty": 2}],"8": [{"desc": "Rim Joist/Ledger (20')","pn": "TFRJ20B","qty": 1},{"desc": "Stair Tread Kit (47.75\" Length)","pn": "TFSTK48B","qty": 8},{"desc": "Stair Tread Bracket Kit (L+R)","pn": "TFSTBKB","qty": 8},{"desc": "Stair Landing Bracket","pn": "TFSTCLIPB","qty": 4},{"desc": "1/4\"-20 x 1.25\" Hex Head Screw","pn": "TF50HEX","qty": 2}],"9": [{"desc": "Rim Joist/Ledger (20')","pn": "TFRJ20B","qty": 1},{"desc": "Stair Tread Kit (47.75\" Length)","pn": "TFSTK48B","qty": 9},{"desc": "Stair Tread Bracket Kit (L+R)","pn": "TFSTBKB","qty": 9},{"desc": "Stair Landing Bracket","pn": "TFSTCLIPB","qty": 4},{"desc": "1/4\"-20 x 1.25\" Hex Head Screw","pn": "TF50HEX","qty": 2}],"10": [{"desc": "Rim Joist/Ledger (12')","pn": "TFRJ12B","qty": 2},{"desc": "Stair Tread Kit (47.75\" Length)","pn": "TFSTK48B","qty": 10},{"desc": "Stair Tread Bracket Kit (L+R)","pn": "TFSTBKB","qty": 10},{"desc": "Stair Landing Bracket","pn": "TFSTCLIPB","qty": 8},{"desc": "1/4\"-20 x 1.25\" Hex Head Screw","pn": "TF50HEX","qty": 3},{"desc": "Post (5.5\" x 5.5\" x 120\")","pn": "TFPOST10B","qty": 1},{"desc": "Post Cap/Post Base","pn": "TFPCB","qty": 4},{"desc": "1/4\"-20 x 1\" Flat Head Screw","pn": "TF50FLAT","qty": 1}],"11": [{"desc": "Rim Joist/Ledger (12')","pn": "TFRJ12B","qty": 2},{"desc": "Stair Tread Kit (47.75\" Length)","pn": "TFSTK48B","qty": 11},{"desc": "Stair Tread Bracket Kit (L+R)","pn": "TFSTBKB","qty": 11},{"desc": "Stair Landing Bracket","pn": "TFSTCLIPB","qty": 8},{"desc": "1/4\"-20 x 1.25\" Hex Head Screw","pn": "TF50HEX","qty": 3},{"desc": "Post (5.5\" x 5.5\" x 120\")","pn": "TFPOST10B","qty": 1},{"desc": "Post Cap/Post Base","pn": "TFPCB","qty": 4},{"desc": "1/4\"-20 x 1\" Flat Head Screw","pn": "TF50FLAT","qty": 1}],"12": [{"desc": "Rim Joist/Ledger (16')","pn": "TFRJ16B","qty": 2},{"desc": "Stair Tread Kit (47.75\" Length)","pn": "TFSTK48B","qty": 12},{"desc": "Stair Tread Bracket Kit (L+R)","pn": "TFSTBKB","qty": 12},{"desc": "Stair Landing Bracket","pn": "TFSTCLIPB","qty": 8},{"desc": "1/4\"-20 x 1.25\" Hex Head Screw","pn": "TF50HEX","qty": 3},{"desc": "Post (5.5\" x 5.5\" x 120\")","pn": "TFPOST10B","qty": 1},{"desc": "Post Cap/Post Base","pn": "TFPCB","qty": 4},{"desc": "1/4\"-20 x 1\" Flat Head Screw","pn": "TF50FLAT","qty": 1}],"13": [{"desc": "Rim Joist/Ledger (16')","pn": "TFRJ16B","qty": 2},{"desc": "Stair Tread Kit (47.75\" Length)","pn": "TFSTK48B","qty": 13},{"desc": "Stair Tread Bracket Kit (L+R)","pn": "TFSTBKB","qty": 13},{"desc": "Stair Landing Bracket","pn": "TFSTCLIPB","qty": 8},{"desc": "1/4\"-20 x 1.25\" Hex Head Screw","pn": "TF50HEX","qty": 4},{"desc": "Post (5.5\" x 5.5\" x 120\")","pn": "TFPOST10B","qty": 1},{"desc": "Post Cap/Post Base","pn": "TFPCB","qty": 4},{"desc": "1/4\"-20 x 1\" Flat Head Screw","pn": "TF50FLAT","qty": 1}],"14": [{"desc": "Rim Joist/Ledger (16')","pn": "TFRJ16B","qty": 2},{"desc": "Stair Tread Kit (47.75\" Length)","pn": "TFSTK48B","qty": 14},{"desc": "Stair Tread Bracket Kit (L+R)","pn": "TFSTBKB","qty": 14},{"desc": "Stair Landing Bracket","pn": "TFSTCLIPB","qty": 8},{"desc": "1/4\"-20 x 1.25\" Hex Head Screw","pn": "TF50HEX","qty": 4},{"desc": "Post (5.5\" x 5.5\" x 120\")","pn": "TFPOST10B","qty": 1},{"desc": "Post Cap/Post Base","pn": "TFPCB","qty": 4},{"desc": "1/4\"-20 x 1\" Flat Head Screw","pn": "TF50FLAT","qty": 1}],"15": [{"desc": "Rim Joist/Ledger (20')","pn": "TFRJ20B","qty": 2},{"desc": "Stair Tread Kit (47.75\" Length)","pn": "TFSTK48B","qty": 15},{"desc": "Stair Tread Bracket Kit (L+R)","pn": "TFSTBKB","qty": 15},{"desc": "Stair Landing Bracket","pn": "TFSTCLIPB","qty": 8},{"desc": "1/4\"-20 x 1.25\" Hex Head Screw","pn": "TF50HEX","qty": 4},{"desc": "Post (5.5\" x 5.5\" x 120\")","pn": "TFPOST10B","qty": 1},{"desc": "Post Cap/Post Base","pn": "TFPCB","qty": 4},{"desc": "1/4\"-20 x 1\" Flat Head Screw","pn": "TF50FLAT","qty": 1}],"16": [{"desc": "Rim Joist/Ledger (20')","pn": "TFRJ20B","qty": 2},{"desc": "Stair Tread Kit (47.75\" Length)","pn": "TFSTK48B","qty": 16},{"desc": "Stair Tread Bracket Kit (L+R)","pn": "TFSTBKB","qty": 16},{"desc": "Stair Landing Bracket","pn": "TFSTCLIPB","qty": 8},{"desc": "1/4\"-20 x 1.25\" Hex Head Screw","pn": "TF50HEX","qty": 4},{"desc": "Post (5.5\" x 5.5\" x 120\")","pn": "TFPOST10B","qty": 1},{"desc": "Post Cap/Post Base","pn": "TFPCB","qty": 4},{"desc": "1/4\"-20 x 1\" Flat Head Screw","pn": "TF50FLAT","qty": 1}],"17": [{"desc": "Rim Joist/Ledger (20')","pn": "TFRJ20B","qty": 2},{"desc": "Stair Tread Kit (47.75\" Length)","pn": "TFSTK48B","qty": 17},{"desc": "Stair Tread Bracket Kit (L+R)","pn": "TFSTBKB","qty": 17},{"desc": "Stair Landing Bracket","pn": "TFSTCLIPB","qty": 8},{"desc": "1/4\"-20 x 1.25\" Hex Head Screw","pn": "TF50HEX","qty": 4},{"desc": "Post (5.5\" x 5.5\" x 120\")","pn": "TFPOST10B","qty": 1},{"desc": "Post Cap/Post Base","pn": "TFPCB","qty": 4},{"desc": "1/4\"-20 x 1\" Flat Head Screw","pn": "TF50FLAT","qty": 1}],"18": [{"desc": "Rim Joist/Ledger (20')","pn": "TFRJ20B","qty": 2},{"desc": "Stair Tread Kit (47.75\" Length)","pn": "TFSTK48B","qty": 18},{"desc": "Stair Tread Bracket Kit (L+R)","pn": "TFSTBKB","qty": 18},{"desc": "Stair Landing Bracket","pn": "TFSTCLIPB","qty": 8},{"desc": "1/4\"-20 x 1.25\" Hex Head Screw","pn": "TF50HEX","qty": 4},{"desc": "Post (5.5\" x 5.5\" x 120\")","pn": "TFPOST10B","qty": 1},{"desc": "Post Cap/Post Base","pn": "TFPCB","qty": 4},{"desc": "1/4\"-20 x 1\" Flat Head Screw","pn": "TF50FLAT","qty": 1}]};
+/* ===================== DATA (from per-step Detailed sheets ? authoritative) ===================== */
+const DETAILED_BOMS = {
+  "3": [{"desc": "Rim Joist/Ledger (12')", "pn": "TFRJ12B", "qty": 1}, {"desc": "Stair Tread Kit (47.75\" Length)", "pn": "TFSTK48B", "qty": 3}, {"desc": "Stair Tread Bracket Kit (L+R)", "pn": "TFSTBKB", "qty": 3}, {"desc": "Stair Landing Bracket", "pn": "TFSTCLIPB", "qty": 4}, {"desc": "1/4\"-20 x 1.25\" Hex Head Screw", "pn": "TF50HEX", "qty": 1}],
+  "4": [{"desc": "Rim Joist/Ledger (12')", "pn": "TFRJ12B", "qty": 1}, {"desc": "Stair Tread Kit (47.75\" Length)", "pn": "TFSTK48B", "qty": 4}, {"desc": "Stair Tread Bracket Kit (L+R)", "pn": "TFSTBKB", "qty": 4}, {"desc": "Stair Landing Bracket", "pn": "TFSTCLIPB", "qty": 4}, {"desc": "1/4\"-20 x 1.25\" Hex Head Screw", "pn": "TF50HEX", "qty": 2}],
+  "5": [{"desc": "Rim Joist/Ledger (12')", "pn": "TFRJ12B", "qty": 1}, {"desc": "Stair Tread Kit (47.75\" Length)", "pn": "TFSTK48B", "qty": 5}, {"desc": "Stair Tread Bracket Kit (L+R)", "pn": "TFSTBKB", "qty": 5}, {"desc": "Stair Landing Bracket", "pn": "TFSTCLIPB", "qty": 4}, {"desc": "1/4\"-20 x 1.25\" Hex Head Screw", "pn": "TF50HEX", "qty": 2}],
+  "6": [{"desc": "Rim Joist/Ledger (16')", "pn": "TFRJ16B", "qty": 1}, {"desc": "Stair Tread Kit (47.75\" Length)", "pn": "TFSTK48B", "qty": 6}, {"desc": "Stair Tread Bracket Kit (L+R)", "pn": "TFSTBKB", "qty": 6}, {"desc": "Stair Landing Bracket", "pn": "TFSTCLIPB", "qty": 4}, {"desc": "1/4\"-20 x 1.25\" Hex Head Screw", "pn": "TF50HEX", "qty": 2}],
+  "7": [{"desc": "Rim Joist/Ledger (16')", "pn": "TFRJ16B", "qty": 1}, {"desc": "Stair Tread Kit (47.75\" Length)", "pn": "TFSTK48B", "qty": 7}, {"desc": "Stair Tread Bracket Kit (L+R)", "pn": "TFSTBKB", "qty": 7}, {"desc": "Stair Landing Bracket", "pn": "TFSTCLIPB", "qty": 4}, {"desc": "1/4\"-20 x 1.25\" Hex Head Screw", "pn": "TF50HEX", "qty": 2}],
+  "8": [{"desc": "Rim Joist/Ledger (20')", "pn": "TFRJ20B", "qty": 1}, {"desc": "Stair Tread Kit (47.75\" Length)", "pn": "TFSTK48B", "qty": 8}, {"desc": "Stair Tread Bracket Kit (L+R)", "pn": "TFSTBKB", "qty": 8}, {"desc": "Stair Landing Bracket", "pn": "TFSTCLIPB", "qty": 4}, {"desc": "1/4\"-20 x 1.25\" Hex Head Screw", "pn": "TF50HEX", "qty": 2}],
+  "9": [{"desc": "Rim Joist/Ledger (20')", "pn": "TFRJ20B", "qty": 1}, {"desc": "Stair Tread Kit (47.75\" Length)", "pn": "TFSTK48B", "qty": 9}, {"desc": "Stair Tread Bracket Kit (L+R)", "pn": "TFSTBKB", "qty": 9}, {"desc": "Stair Landing Bracket", "pn": "TFSTCLIPB", "qty": 4}, {"desc": "1/4\"-20 x 1.25\" Hex Head Screw", "pn": "TF50HEX", "qty": 2}],
+  "10": [{"desc": "Rim Joist/Ledger (12')", "pn": "TFRJ12B", "qty": 2}, {"desc": "Stair Tread Kit (47.75\" Length)", "pn": "TFSTK48B", "qty": 10}, {"desc": "Stair Tread Bracket Kit (L+R)", "pn": "TFSTBKB", "qty": 10}, {"desc": "Stair Landing Bracket", "pn": "TFSTCLIPB", "qty": 4}, {"desc": "1/4\"-20 x 1.25\" Hex Head Screw", "pn": "TF50HEX", "qty": 3}, {"desc": "Post (5.5\" x 5.5\" x 120\")", "pn": "TFPOST10B", "qty": 2}, {"desc": "Post Cap/Post Base", "pn": "TFPCB", "qty": 4}, {"desc": "1/4\"-20 x 1\" Flat Head Screw", "pn": "TF50FLAT", "qty": 1}],
+  "11": [{"desc": "Rim Joist/Ledger (12')", "pn": "TFRJ12B", "qty": 2}, {"desc": "Stair Tread Kit (47.75\" Length)", "pn": "TFSTK48B", "qty": 11}, {"desc": "Stair Tread Bracket Kit (L+R)", "pn": "TFSTBKB", "qty": 11}, {"desc": "Stair Landing Bracket", "pn": "TFSTCLIPB", "qty": 6}, {"desc": "1/4\"-20 x 1.25\" Hex Head Screw", "pn": "TF50HEX", "qty": 3}, {"desc": "Post (5.5\" x 5.5\" x 120\")", "pn": "TFPOST10B", "qty": 3}, {"desc": "Post Cap/Post Base", "pn": "TFPCB", "qty": 8}, {"desc": "1/4\"-20 x 1\" Flat Head Screw", "pn": "TF50FLAT", "qty": 1}],
+  "12": [{"desc": "Rim Joist/Ledger (16')", "pn": "TFRJ16B", "qty": 2}, {"desc": "Stair Tread Kit (47.75\" Length)", "pn": "TFSTK48B", "qty": 12}, {"desc": "Stair Tread Bracket Kit (L+R)", "pn": "TFSTBKB", "qty": 12}, {"desc": "Stair Landing Bracket", "pn": "TFSTCLIPB", "qty": 6}, {"desc": "1/4\"-20 x 1.25\" Hex Head Screw", "pn": "TF50HEX", "qty": 3}, {"desc": "Post (5.5\" x 5.5\" x 120\")", "pn": "TFPOST10B", "qty": 3}, {"desc": "Post Cap/Post Base", "pn": "TFPCB", "qty": 8}, {"desc": "1/4\"-20 x 1\" Flat Head Screw", "pn": "TF50FLAT", "qty": 1}],
+  "13": [{"desc": "Rim Joist/Ledger (16')", "pn": "TFRJ16B", "qty": 2}, {"desc": "Stair Tread Kit (47.75\" Length)", "pn": "TFSTK48B", "qty": 13}, {"desc": "Stair Tread Bracket Kit (L+R)", "pn": "TFSTBKB", "qty": 13}, {"desc": "Stair Landing Bracket", "pn": "TFSTCLIPB", "qty": 6}, {"desc": "1/4\"-20 x 1.25\" Hex Head Screw", "pn": "TF50HEX", "qty": 4}, {"desc": "Post (5.5\" x 5.5\" x 120\")", "pn": "TFPOST10B", "qty": 3}, {"desc": "Post Cap/Post Base", "pn": "TFPCB", "qty": 8}, {"desc": "1/4\"-20 x 1\" Flat Head Screw", "pn": "TF50FLAT", "qty": 1}],
+  "14": [{"desc": "Rim Joist/Ledger (16')", "pn": "TFRJ16B", "qty": 2}, {"desc": "Stair Tread Kit (47.75\" Length)", "pn": "TFSTK48B", "qty": 14}, {"desc": "Stair Tread Bracket Kit (L+R)", "pn": "TFSTBKB", "qty": 14}, {"desc": "Stair Landing Bracket", "pn": "TFSTCLIPB", "qty": 6}, {"desc": "1/4\"-20 x 1.25\" Hex Head Screw", "pn": "TF50HEX", "qty": 4}, {"desc": "Post (5.5\" x 5.5\" x 120\")", "pn": "TFPOST10B", "qty": 3}, {"desc": "Post Cap/Post Base", "pn": "TFPCB", "qty": 8}, {"desc": "1/4\"-20 x 1\" Flat Head Screw", "pn": "TF50FLAT", "qty": 1}],
+  "15": [{"desc": "Rim Joist/Ledger (20')", "pn": "TFRJ20B", "qty": 2}, {"desc": "Stair Tread Kit (47.75\" Length)", "pn": "TFSTK48B", "qty": 15}, {"desc": "Stair Tread Bracket Kit (L+R)", "pn": "TFSTBKB", "qty": 15}, {"desc": "Stair Landing Bracket", "pn": "TFSTCLIPB", "qty": 6}, {"desc": "1/4\"-20 x 1.25\" Hex Head Screw", "pn": "TF50HEX", "qty": 4}, {"desc": "Post (5.5\" x 5.5\" x 120\")", "pn": "TFPOST10B", "qty": 3}, {"desc": "Post Cap/Post Base", "pn": "TFPCB", "qty": 8}, {"desc": "1/4\"-20 x 1\" Flat Head Screw", "pn": "TF50FLAT", "qty": 1}],
+  "16": [{"desc": "Rim Joist/Ledger (20')", "pn": "TFRJ20B", "qty": 2}, {"desc": "Stair Tread Kit (47.75\" Length)", "pn": "TFSTK48B", "qty": 16}, {"desc": "Stair Tread Bracket Kit (L+R)", "pn": "TFSTBKB", "qty": 16}, {"desc": "Stair Landing Bracket", "pn": "TFSTCLIPB", "qty": 6}, {"desc": "1/4\"-20 x 1.25\" Hex Head Screw", "pn": "TF50HEX", "qty": 4}, {"desc": "Post (5.5\" x 5.5\" x 120\")", "pn": "TFPOST10B", "qty": 4}, {"desc": "Post Cap/Post Base", "pn": "TFPCB", "qty": 8}, {"desc": "1/4\"-20 x 1\" Flat Head Screw", "pn": "TF50FLAT", "qty": 1}],
+  "17": [{"desc": "Rim Joist/Ledger (20')", "pn": "TFRJ20B", "qty": 2}, {"desc": "Stair Tread Kit (47.75\" Length)", "pn": "TFSTK48B", "qty": 17}, {"desc": "Stair Tread Bracket Kit (L+R)", "pn": "TFSTBKB", "qty": 17}, {"desc": "Stair Landing Bracket", "pn": "TFSTCLIPB", "qty": 6}, {"desc": "1/4\"-20 x 1.25\" Hex Head Screw", "pn": "TF50HEX", "qty": 4}, {"desc": "Post (5.5\" x 5.5\" x 240\" )", "pn": "TFPOST20B", "qty": 2}, {"desc": "Post Cap/Post Base", "pn": "TFPCB", "qty": 8}, {"desc": "1/4\"-20 x 1\" Flat Head Screw", "pn": "TF50FLAT", "qty": 1}],
+  "18": [{"desc": "Rim Joist/Ledger (20')", "pn": "TFRJ20B", "qty": 2}, {"desc": "Stair Tread Kit (47.75\" Length)", "pn": "TFSTK48B", "qty": 18}, {"desc": "Stair Tread Bracket Kit (L+R)", "pn": "TFSTBKB", "qty": 18}, {"desc": "Stair Landing Bracket", "pn": "TFSTCLIPB", "qty": 6}, {"desc": "1/4\"-20 x 1.25\" Hex Head Screw", "pn": "TF50HEX", "qty": 4}, {"desc": "Post (5.5\" x 5.5\" x 240\" )", "pn": "TFPOST20B", "qty": 2}, {"desc": "Post Cap/Post Base", "pn": "TFPCB", "qty": 8}, {"desc": "1/4\"-20 x 1\" Flat Head Screw", "pn": "TF50FLAT", "qty": 1}]
+};
 
 /* ===================== CONSTANTS ===================== */
 const RUN=10.75, RISE_NOM=7.25, ANGLE=34.0, TREAD_W=47.75;
-const RISE_MIN=7.0, RISE_MAX=7.5;
-// Sheet1 height-range lookup (step -> [min,max] total height inches)
+const RISE_STEPS=[7.0, 7.25, 7.5];             // discrete allowed per-step rises (uniform across the stair)
+const RISE_MIN=RISE_STEPS[0], RISE_MAX=RISE_STEPS[RISE_STEPS.length-1];
+const MIN_TOTAL=3*RISE_MIN, MAX_TOTAL=18*RISE_MAX;   // 21" .. 135" buildable total-rise envelope
+// Height-range lookup (step -> [min,max] total height inches) — cross-check for total-rise mode
 const HEIGHT_RANGES={3:[20,21.5],4:[27,29],5:[34,36.5],6:[41,44],7:[48,51.5],8:[55,59],9:[62,66.5],10:[69,74],11:[76,81.5],12:[83,89],13:[90,96.5],14:[97,104],15:[104,111.5],16:[111,119],17:[118,126.5],18:[125,134]};
 
 /* ===================== ENGINE ===================== */
 function stepsFromRise(total){
-  // start near nominal, clamp per-step rise into [7.0,7.5]
-  let n=Math.round(total/RISE_NOM);
-  n=Math.max(3,Math.min(18,n));
-  let rise=total/n;
-  while(rise>RISE_MAX && n<18){n++;rise=total/n;}
-  while(rise<RISE_MIN && n>3){n--;rise=total/n;}
-  return {n, rise:+(rise.toFixed(3))};
+  // Rise per step is discrete (7.0 / 7.25 / 7.5") and uniform, so buildable heights
+  // are n*r for n in 3..18. Snap to the (n,r) whose total is closest to the entered
+  // rise. Tie-break: prefer the rise nearest 7.25" nominal, then the lower step count.
+  let best=null;
+  for(let n=3;n<=18;n++){
+    for(const r of RISE_STEPS){
+      const achieved=n*r, delta=Math.abs(achieved-total), nomGap=Math.abs(r-RISE_NOM);
+      const cand={n, r, achieved, delta, nomGap};
+      if(!best){best=cand;continue;}
+      if(delta < best.delta-1e-9){best=cand;continue;}
+      if(delta < best.delta+1e-9){                       // tie on closeness
+        if(nomGap < best.nomGap-1e-9){best=cand;continue;}
+        if(Math.abs(nomGap-best.nomGap)<1e-9 && n<best.n){best=cand;continue;}
+      }
+    }
+  }
+  return {n:best.n, rise:best.r, achieved:+best.achieved.toFixed(2), delta:+(best.achieved-total).toFixed(2)};
 }
 function frameHeight(n){return +(20.75+(n-3)*7.25).toFixed(2);}
 function widthPlan(widthIn){
@@ -188,9 +266,9 @@ function widthPlan(widthIn){
   return {sections,stringers,middle,custom};
 }
 
-// Build scaled BOM from base Sheet1 block + width rules
+// Build scaled BOM from base Detailed-sheet block + width rules
 function buildBOM(n, wp){
-  const base=SHEET1_BOMS[String(n)].map(p=>({...p, note:""}));
+  const base=DETAILED_BOMS[String(n)].map(p=>({...p, note:""}));
   const out=base.map(p=>({...p}));
   const find=pn=>out.find(p=>p.pn===pn);
 
@@ -238,33 +316,128 @@ function dim(g,x1,y1,x2,y2,off,label,opt){
   arrowhead(g,ax2,ay2,-ux,-uy);
   const mx=(ax1+ax2)/2+px*(opt.lpush||0), my=(ay1+ay2)/2+py*(opt.lpush||0);
   let ang=Math.atan2(dy,dx)*180/Math.PI; if(ang>90||ang<-90)ang+=180;
-  const t=txt(g,mx,my-3,label,{"text-anchor":"middle",fill:"var(--dim)","font-weight":"bold"});
+  const t=txt(g,mx,my-3,label,{"text-anchor":"middle",fill:"var(--dim)","font-weight":"bold",
+    stroke:"#fff","stroke-width":3.2,"paint-order":"stroke","stroke-linejoin":"round"});
   t.setAttribute("transform",`rotate(${ang.toFixed(2)} ${mx} ${my})`);
 }
 
-/* Side elevation */
+/* Side elevation \u2014 with schematic deck rim joist + landing pad, solid stringer beam */
 function sideView(n,r){
-  const totalRun=RUN*n, totalRise=r*n, stringer=Math.hypot(r,RUN)*n;
-  const padL=64,padR=140,padT=48,padB=78;
-  const sc=Math.min(820/totalRun, 360/totalRise);   // fit
-  const W=totalRun*sc+padL+padR, H=totalRise*sc+padT+padB;
-  const ox=padL, oy=H-padB;
-  const X=x=>ox+x*sc, Y=y=>oy-y*sc;
+  const totalRun=RUN*n, totalRise=r*n, stringer=Math.hypot(r,RUN)*n, fh=frameHeight(n);
+  // schematic context geometry (data inches) \u2014 representative, NOT dimensioned to a real deck
+  const hasPosts=n>=10, vDrop=7.5, deckW=1.3*RUN, deckH=2.4*r, landL=0.5*RUN, landR=1.6*RUN;
+  const landH = hasPosts ? Math.max(3,r*0.4) : 1.3*r;      // thin pad when freestanding on posts
+  const rightExt = hasPosts ? 0.4*RUN : deckW;             // deck to the right only when attached
+  // scene bounds in data coords
+  const xMin=-landL, xMax=totalRun+rightExt, yMin=-landH, yMax=totalRise;
+  const sceneW=xMax-xMin, sceneH=yMax-yMin;
+  const padL=86,padR=176,padT=82,padB=100;
+  const sc=Math.min(820/sceneW, 360/sceneH);
+  const W=sceneW*sc+padL+padR, H=sceneH*sc+padT+padB;
+  const X=x=>padL+(x-xMin)*sc, Y=y=>padT+(yMax-y)*sc;
   const svg=el("svg",{viewBox:`0 0 ${W.toFixed(0)} ${H.toFixed(0)}`});
-  add(svg,"line",{x1:X(0)-10,y1:Y(0),x2:X(totalRun)+10,y2:Y(0),stroke:"#999","stroke-width":1,"stroke-dasharray":"5 4"});
+
+  // --- context: deck block (attached, N<10) OR posts (freestanding, N>=10); landing at the base ---
+  if(!hasPosts) add(svg,"rect",{x:X(totalRun),y:Y(totalRise),width:deckW*sc,height:deckH*sc,fill:"#f3ead0",stroke:"var(--ink)","stroke-width":1.2});
+  add(svg,"rect",{x:X(xMin),y:Y(0),width:(landR-xMin)*sc,height:landH*sc,fill:"#f3ead0",stroke:"var(--ink)","stroke-width":1.2});
+
+  // ground reference
+  add(svg,"line",{x1:X(xMin),y1:Y(0),x2:X(totalRun)+10,y2:Y(0),stroke:"#999","stroke-width":1,"stroke-dasharray":"5 4"});
+
+  // posts (N>=10): mid-run + high-end vertical legs up to the stringer (drawn under the beam)
+  if(hasPosts){
+    const postW=5.5;
+    for(const px of [totalRun/2, totalRun]){
+      const topY=(r/RUN)*px;
+      add(svg,"rect",{x:X(px-postW/2),y:Y(topY),width:postW*sc,height:topY*sc,fill:"#d9dde2",stroke:"var(--ink)","stroke-width":1.1});
+    }
+  }
+
+  // --- stringer beam: notch line on top, plumb cut at deck (top), LEVEL seat cut on landing (toe) ---
+  const len=Math.hypot(totalRun,totalRise), nosePerp=RUN*r/len, toeX=vDrop*RUN/r;
+  add(svg,"path",{d:`M ${X(0)} ${Y(0)} L ${X(totalRun)} ${Y(totalRise)} `
+    +`L ${X(totalRun)} ${Y(totalRise-vDrop)} L ${X(toeX)} ${Y(0)} Z`,
+    fill:"#f6d9d6",stroke:"var(--accent)","stroke-width":1.4,"stroke-linejoin":"round"});
+
+  // --- tread/riser sawtooth profile (over the beam) ---
   let d=`M ${X(0)} ${Y(0)} `;
   for(let i=0;i<n;i++){d+=`L ${X(i*RUN)} ${Y((i+1)*r)} L ${X((i+1)*RUN)} ${Y((i+1)*r)} `;}
   add(svg,"path",{d,fill:"none",stroke:"var(--ink)","stroke-width":2});
-  add(svg,"line",{x1:X(0),y1:Y(0),x2:X(totalRun),y2:Y(totalRise),stroke:"var(--accent)","stroke-width":2});
   add(svg,"line",{x1:X(totalRun),y1:Y(totalRise),x2:X(totalRun),y2:Y(0),stroke:"var(--ink)","stroke-width":1.4});
-  dim(svg,X(0),Y(0),X(0),Y(r),-26,`${r.toFixed(2)}"  TYP`);
-  dim(svg,X(0),Y(r),X(RUN),Y(r),-22,`${RUN}"  TYP`);
-  dim(svg,X(0),Y(0),X(totalRun),Y(0),52,`TOTAL RUN  ${totalRun.toFixed(2)}"`);
-  dim(svg,X(totalRun),Y(0),X(totalRun),Y(totalRise),58,`TOTAL RISE  ${totalRise.toFixed(2)}"`);
-  dim(svg,X(0),Y(0),X(totalRun),Y(totalRise),-30,`STRINGER  ${stringer.toFixed(1)}"`,{lpush:0});
-  const aR=46, a2=ANGLE*Math.PI/180;
+
+  // --- dimensions (kept off the geometry: witness lines out to clear space) ---
+  dim(svg,X(0),Y(0),X(0),Y(r),-30,`${r.toFixed(2)}"  TYP`);               // rise on 1st riser
+  dim(svg,X(0),Y(r),X(RUN),Y(r),-24,`${RUN}"  TYP`);                      // run on 1st tread
+  dim(svg,X(0),Y(0),X(totalRun),Y(0),landH*sc+44,`TOTAL RUN  ${totalRun.toFixed(2)}"`);
+  const rOff = hasPosts ? 40 : deckW*sc+40;
+  dim(svg,X(totalRun),Y(0),X(totalRun),Y(totalRise),rOff,`TOTAL RISE  ${totalRise.toFixed(2)}"`);
+  dim(svg,X(totalRun),Y(0),X(totalRun),Y(fh),rOff+46,`FRAME HT  ${fh.toFixed(2)}"`);
+  dim(svg,X(0),Y(0),X(totalRun),Y(totalRise),-(nosePerp*sc+22),`STRINGER  ${stringer.toFixed(1)}"`,{lpush:0});
+  const aR=Math.min(46,totalRun*sc*0.5), a2=ANGLE*Math.PI/180;
   add(svg,"path",{d:`M ${X(0)+aR} ${Y(0)} A ${aR} ${aR} 0 0 0 ${X(0)+aR*Math.cos(a2)} ${Y(0)-aR*Math.sin(a2)}`,fill:"none",stroke:"var(--dim)","stroke-width":.9});
-  txt(svg,X(0)+aR+6,Y(0)-14,`${ANGLE}\u00B0`,{fill:"var(--dim)","font-weight":"bold"});
+  txt(svg,X(0)+aR+8,Y(0)-10,`${ANGLE}\u00B0`,{fill:"var(--dim)","font-weight":"bold",stroke:"#fff","stroke-width":3.2,"paint-order":"stroke","stroke-linejoin":"round"});
+
+  // context labels on top of everything
+  if(!hasPosts) txt(svg,X(totalRun)+deckW*sc/2,Y(totalRise)+deckH*sc/2+3,"DECK",{"text-anchor":"middle",fill:"#8a7a52","font-size":9,"font-weight":"bold"});
+  txt(svg,X((xMin+landR)/2), hasPosts?Y(0)+landH*sc+12:Y(0)+landH*sc/2+3, "LANDING",{"text-anchor":"middle",fill:"#8a7a52","font-size":9,"font-weight":"bold"});
+  return {svg,sc};
+}
+
+/* 3D isometric (schematic, clean line-art) \u2014 thin tread slabs on open stringers,
+   with either a deck block (attached) or posts (freestanding, N>=10). Deterministic iso. */
+function isoView(n,r,widthIn){
+  const Wd=widthIn, totalRun=RUN*n, totalRise=r*n, hasPosts=n>=10;
+  const A=Math.PI/6, ca=Math.cos(A), sa=Math.sin(A);
+  // bird's-eye iso: run recedes up-right, width up-left, height straight up
+  const pr=(x,y,z)=>({x:(x-z)*ca, y:-(x+z)*sa-y});
+  const deckD=1.4*RUN, deckT=1.8*r, landFront=1.2*RUN, landBack=0.4*RUN, beamV=8.0;
+  const landT = hasPosts ? Math.max(2.5,r*0.35) : 1.5*r;
+  const rightExt = hasPosts ? 0.3*RUN : deckD;
+  // fit bounds from all extremes
+  const pts=[];
+  for(const x of [-landBack, totalRun+rightExt]) for(const y of [-landT, totalRise]) for(const z of [0,Wd]) pts.push(pr(x,y,z));
+  const minX=Math.min(...pts.map(p=>p.x)), maxX=Math.max(...pts.map(p=>p.x));
+  const minY=Math.min(...pts.map(p=>p.y)), maxY=Math.max(...pts.map(p=>p.y));
+  const padL=40,padR=70,padT=44,padB=40;
+  const sc=Math.min(720/(maxX-minX), 380/(maxY-minY));
+  const W=(maxX-minX)*sc+padL+padR, H=(maxY-minY)*sc+padT+padB;
+  const P=(x,y,z)=>{const p=pr(x,y,z);return{x:padL+(p.x-minX)*sc, y:padT+(p.y-minY)*sc};};
+  const svg=el("svg",{viewBox:`0 0 ${W.toFixed(0)} ${H.toFixed(0)}`});
+  const poly=(q,fill,sw)=>{const d=q.map((c,i)=>`${i?'L':'M'} ${P(c[0],c[1],c[2]).x.toFixed(1)} ${P(c[0],c[1],c[2]).y.toFixed(1)}`).join(' ')+' Z';
+    add(svg,"path",{d,fill,stroke:"#333","stroke-width":sw==null?1.1:sw,"stroke-linejoin":"round"});};
+  // cuboid: 3 visible faces \u2014 top (y1), front (x0, toward viewer), near side (z0)
+  const box=(x0,x1,y0,y1,z0,z1,cT,cF,cS)=>{
+    poly([[x0,y0,z0],[x1,y0,z0],[x1,y1,z0],[x0,y1,z0]],cS);      // near side z0
+    poly([[x0,y0,z0],[x0,y1,z0],[x0,y1,z1],[x0,y0,z1]],cF);      // front -x
+    poly([[x0,y1,z0],[x1,y1,z0],[x1,y1,z1],[x0,y1,z1]],cT);};    // top
+
+  // deck (back) \u2014 only when attached (N<10)
+  if(!hasPosts) box(totalRun, totalRun+deckD, totalRise-deckT, totalRise, 0, Wd, "#e6d9b4","#cdbd8e","#dccda2");
+  // posts (N>=10): mid-run + high-end legs under each outer stringer (behind the treads)
+  if(hasPosts){
+    const pw=5.5, notchY=x=>(r/RUN)*x, pT="#d7dbe0", pF="#b7bec6", pS="#c6ccd3";
+    for(const pz of [Wd-pw, 0]) for(const px of [totalRun/2, totalRun])
+      box(px-pw/2, px+pw/2, 0, notchY(px), pz, pz+pw, pT, pF, pS);
+  }
+  // stringers (level seat cut on landing, plumb cut at top) \u2014 far then near
+  const toeXi=beamV*RUN/r;
+  const stringer=z=>poly([[0,0,z],[totalRun,totalRise,z],[totalRun,totalRise-beamV,z],[toeXi,0,z]],"#f0cfcb",1.1);
+  stringer(Wd); stringer(0);
+  // thin tread slabs on the stringers (open risers), back-to-front
+  const treadTh=Math.max(1.6, r*0.24), tT="#e9edf1", tF="#c7cfd8", tS="#d9dfe6";
+  for(let i=n-1;i>=0;i--) box(i*RUN, (i+1)*RUN, (i+1)*r-treadTh, (i+1)*r, 0, Wd, tT, tF, tS);
+  // landing (front, closest) \u2014 thin pad when on posts, chunky block when attached
+  box(-landBack, landFront, -landT, 0, 0, Wd,
+    hasPosts?"#dfe2e6":"#e6d9b4", hasPosts?"#c2c8ce":"#cdbd8e", hasPosts?"#d3d8dd":"#dccda2");
+
+  // width dimension on the top tread (across the width direction)
+  (function(){const xd=totalRun-RUN*0.45, p0=P(xd,totalRise,Wd), p1=P(xd,totalRise,0);
+    const dx=p1.x-p0.x,dy=p1.y-p0.y,L=Math.hypot(dx,dy);
+    add(svg,"line",{x1:p0.x,y1:p0.y,x2:p1.x,y2:p1.y,stroke:"var(--dim)","stroke-width":1.1});
+    arrowhead(svg,p0.x,p0.y,dx/L,dy/L); arrowhead(svg,p1.x,p1.y,-dx/L,-dy/L);
+    txt(svg,(p0.x+p1.x)/2,(p0.y+p1.y)/2-4,`${Wd}"`,{"text-anchor":"middle",fill:"var(--dim)","font-weight":"bold",
+      stroke:"#fff","stroke-width":3.2,"paint-order":"stroke","stroke-linejoin":"round"});})();
+
   return {svg,sc};
 }
 
@@ -340,11 +513,14 @@ function calculate(){
   if(mode==="rise"){
     const tr=parseFloat($("totalRise").value);
     if(!(tr>0)){showAlert("warn","Enter a valid total rise.");return;}
-    if(tr<HEIGHT_RANGES[3][0]||tr>HEIGHT_RANGES[18][1]){
-      showAlert("warn",`Total rise ${tr}" is outside the supported range (${HEIGHT_RANGES[3][0]}"\u2013${HEIGHT_RANGES[18][1]}", i.e. 3\u201318 steps).`);return;
+    if(tr<MIN_TOTAL||tr>MAX_TOTAL){
+      showAlert("warn",`Total rise ${tr}" is outside the buildable range (${MIN_TOTAL}"\u2013${MAX_TOTAL}", i.e. 3\u201318 steps at 7.0\u20137.5" per step).`);return;
     }
     const r=stepsFromRise(tr); n=r.n; rise=r.rise;
-    riseMsg=`Derived ${n} steps @ ${rise.toFixed(2)}" rise from ${tr}" total.`;
+    const sign=r.delta>0?'+':'';
+    riseMsg = r.delta===0
+      ? `Exact fit: ${n} steps @ ${rise.toFixed(2)}" rise = ${r.achieved}" total.`
+      : `Rounded to ${n} steps @ ${rise.toFixed(2)}" rise \u2192 <b>${r.achieved}" buildable</b> (${sign}${r.delta}" vs ${tr}" entered).`;
   }else{
     n=parseInt($("stepCount").value);
     if(!(n>=3&&n<=18)){showAlert("warn","Step count must be 3\u201318.");return;}
@@ -398,11 +574,11 @@ function renderBOM(bom,n,wp){
     <tbody>${rows}</tbody></table>`;
   const attach=$("attach").value;
   const notes=[];
-  notes.push(`BOM base read from Sheet1 for ${n}-step assembly (authoritative).`);
+  notes.push(`BOM base read from the ${n}-step Detailed sheet (authoritative).`);
   if(wp.sections>1)notes.push(`Tread kits scaled to ${wp.sections} section(s); ${wp.middle} middle stringer(s) \u2192 TFSTBMB middle brackets added.`);
   if(wp.custom)notes.push(`Custom width: treads cut to size between stringers.`);
   notes.push(`Top stair attachment: <b>${esc(attach)}</b> (affects drawing/notes only in this demo).`);
-  notes.push(`Posts/post-caps held at Sheet1 baseline regardless of width (provisional).`);
+  notes.push(`Posts/post-caps per Detailed-sheet baseline regardless of width (provisional).`);
   $("bomNotes").innerHTML=notes.map(x=>`<li>${x}</li>`).join("");
   $("bomCard").style.display="block";
 }
@@ -411,6 +587,8 @@ function renderDrawings(n,rise,widthIn,wp){
   const side=sideView(n,rise), plan=planView(n,widthIn,wp);
   const sp=$("sideSvg"); sp.innerHTML=""; sp.appendChild(side.svg); sp.appendChild(scaleBar(side.sc));
   const pp=$("planSvg"); pp.innerHTML=""; pp.appendChild(plan.svg); pp.appendChild(scaleBar(plan.sc));
+  // Tier 3 (isometric) temporarily hidden — re-enable the #isoPanel div + this block to restore:
+  // const iso=isoView(n,rise,widthIn); const ip=$("isoSvg"); ip.innerHTML=""; ip.appendChild(iso.svg);
   $("drawCard").style.display="block";
 }
 
@@ -418,6 +596,165 @@ function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','
 
 // run once with defaults
 calculate();
+</script>
+
+<!-- ============ AUTH MODAL (mock) ============ -->
+<div class="modal" id="authModal">
+  <div class="mbox">
+    <div class="mhead"><span>Sign in to save your work</span><button class="x" id="authClose">&times;</button></div>
+    <div class="mock-note">Demo mock — accounts and projects are stored only in this browser (localStorage). No real server or Google sign-in; the production build uses server-side auth + a database.</div>
+    <div class="tabs" id="authTabs">
+      <button class="on" data-tab="signin">Sign in</button>
+      <button data-tab="signup">Sign up</button>
+    </div>
+    <form id="authForm" data-mode="signin">
+      <div id="nameRow" style="display:none">
+        <label>Name</label>
+        <input type="text" id="authName" placeholder="Your name">
+      </div>
+      <label>Username</label>
+      <input type="text" id="authUser" autocomplete="username">
+      <label>Password</label>
+      <input type="password" id="authPass" autocomplete="current-password">
+      <div class="err" id="authErr"></div>
+      <button type="submit" class="go" id="authSubmit" style="margin-top:12px">Sign in</button>
+    </form>
+    <div class="or">— or —</div>
+    <button class="gbtn" id="googleBtn"><span class="gg">G</span> Continue with Google</button>
+  </div>
+</div>
+<div class="toast" id="toast" style="display:none"></div>
+
+<script>
+/* ===================== AUTH + SAVED PROJECTS (mock, localStorage) =====================
+   DEMO ONLY — no backend. Passwords live in plaintext in localStorage purely to demo the
+   flow; treat none of this as secure. The production build uses server-side auth
+   (username/password + Google OAuth) and a database for per-user saved projects. */
+const LS_USERS="ttaf_users", LS_SESSION="ttaf_session";
+const readJSON=(k,def)=>{try{const v=JSON.parse(localStorage.getItem(k));return v==null?def:v;}catch{return def;}};
+const writeJSON=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+const projKey=u=>`ttaf_projects_${u}`;
+const currentUser=()=>localStorage.getItem(LS_SESSION);
+const users=()=>readJSON(LS_USERS,{});
+
+function signUp(username,password,name){
+  const db=users();
+  if(db[username]) throw new Error("That username is already taken.");
+  db[username]={password,name:name||username,provider:"password"};
+  writeJSON(LS_USERS,db); localStorage.setItem(LS_SESSION,username);
+}
+function signIn(username,password){
+  const u=users()[username];
+  if(!u||u.password!==password) throw new Error("Invalid username or password.");
+  localStorage.setItem(LS_SESSION,username);
+}
+function googleSignIn(){
+  const username="google:demo.user@gmail.com", db=users();
+  if(!db[username]) db[username]={password:null,name:"Demo Google User",provider:"google"};
+  writeJSON(LS_USERS,db); localStorage.setItem(LS_SESSION,username);
+}
+const signOut=()=>localStorage.removeItem(LS_SESSION);
+
+/* ---- projects ---- */
+const myProjects=()=>{const u=currentUser();return u?readJSON(projKey(u),[]):[];};
+function collectInputs(){
+  return {mode, totalRise:$("totalRise").value, stepCount:$("stepCount").value,
+    width:$("width").value, widthUnit:$("widthUnit").value,
+    attach:$("attach").value, projName:$("projName").value};
+}
+function saveProject(){
+  const u=currentUser(); if(!u){openAuth();return;}
+  const inputs=collectInputs();
+  const name=(inputs.projName||"").trim() || `Untitled (${new Date().toLocaleDateString()})`;
+  const list=myProjects(), existing=list.find(p=>p.name===name);
+  if(existing){existing.inputs=inputs; existing.savedAt=Date.now();}
+  else list.unshift({id:Date.now().toString(36), name, savedAt:Date.now(), inputs});
+  writeJSON(projKey(u),list); renderProjects(); flash(`Saved “${name}”.`);
+}
+function loadProject(id){
+  const p=myProjects().find(x=>x.id===id); if(!p)return;
+  const i=p.inputs; mode=i.mode;
+  [...$("modeSeg").children].forEach(x=>x.classList.toggle("on",x.dataset.mode===mode));
+  $("riseBlock").style.display=mode==="rise"?"block":"none";
+  $("stepsBlock").style.display=mode==="steps"?"block":"none";
+  $("totalRise").value=i.totalRise; $("stepCount").value=i.stepCount;
+  $("width").value=i.width; $("widthUnit").value=i.widthUnit;
+  $("attach").value=i.attach; $("projName").value=i.projName;
+  calculate(); flash(`Loaded “${p.name}”.`);
+}
+function deleteProject(id){
+  const u=currentUser(); if(!u)return;
+  writeJSON(projKey(u), myProjects().filter(x=>x.id!==id)); renderProjects();
+}
+
+/* ---- rendering ---- */
+function renderAuth(){
+  const u=currentUser(), area=$("authArea");
+  if(u){
+    const name=(users()[u]||{}).name||u;
+    area.innerHTML=`<span class="who">Signed in — <b>${esc(name)}</b></span><button class="authbtn ghost" id="signOutBtn">Sign out</button>`;
+    $("signOutBtn").onclick=()=>{signOut();renderAuth();renderProjects();flash("Signed out.");};
+  }else{
+    area.innerHTML=`<button class="authbtn" id="openAuthBtn">Sign in / Sign up</button>`;
+    $("openAuthBtn").onclick=openAuth;
+  }
+  $("saveBtn").disabled=!u;
+  $("saveBtn").title=u?"Save this project to your account":"Sign in to save projects";
+  $("projectsCard").style.display=u?"block":"none";
+}
+function renderProjects(){
+  const list=myProjects(), box=$("projList");
+  if(!box)return;
+  if(!list.length){box.innerHTML=`<div class="empty">No saved projects yet. Fill in inputs and press “Save project”.</div>`;return;}
+  box.innerHTML=list.map(p=>`<div class="proj">
+    <div class="pmeta"><div class="pn2">${esc(p.name)}</div>
+      <div class="psub">${esc(summarizeInputs(p.inputs))} · ${new Date(p.savedAt).toLocaleString()}</div></div>
+    <div class="pacts"><button data-load="${p.id}">Open</button><button class="del" data-del="${p.id}">Delete</button></div>
+  </div>`).join("");
+}
+function summarizeInputs(i){
+  const h=i.mode==="rise"?`${i.totalRise}" rise`:`${i.stepCount} steps`;
+  const w=i.widthUnit==="ft"?`${i.width} ft`:`${i.width}"`;
+  return `${h} · ${w}`;
+}
+
+/* ---- modal + toast ---- */
+const openAuth=()=>{$("authModal").style.display="flex";};
+const closeAuth=()=>{$("authModal").style.display="none";$("authErr").textContent="";};
+function flash(msg){const t=$("toast");t.textContent=msg;t.style.display="block";clearTimeout(flash._t);flash._t=setTimeout(()=>t.style.display="none",2600);}
+
+/* ---- wiring ---- */
+$("saveBtn").addEventListener("click",saveProject);
+$("projList").addEventListener("click",e=>{
+  const l=e.target.closest("[data-load]"), d=e.target.closest("[data-del]");
+  if(l)loadProject(l.dataset.load);
+  if(d)deleteProject(d.dataset.del);
+});
+$("authClose").addEventListener("click",closeAuth);
+$("authModal").addEventListener("click",e=>{if(e.target===$("authModal"))closeAuth();});
+$("authTabs").addEventListener("click",e=>{
+  const b=e.target.closest("button"); if(!b)return;
+  const m=b.dataset.tab; $("authForm").dataset.mode=m;
+  [...$("authTabs").children].forEach(x=>x.classList.toggle("on",x===b));
+  $("nameRow").style.display=m==="signup"?"block":"none";
+  $("authSubmit").textContent=m==="signup"?"Create account":"Sign in";
+});
+$("authForm").addEventListener("submit",e=>{
+  e.preventDefault();
+  const m=$("authForm").dataset.mode||"signin";
+  const un=$("authUser").value.trim(), pw=$("authPass").value, nm=$("authName").value.trim();
+  try{
+    if(!un||!pw) throw new Error("Enter a username and password.");
+    if(m==="signup") signUp(un,pw,nm); else signIn(un,pw);
+    closeAuth(); renderAuth(); renderProjects(); flash("Signed in.");
+  }catch(err){$("authErr").textContent=err.message;}
+});
+$("googleBtn").addEventListener("click",()=>{
+  try{googleSignIn();closeAuth();renderAuth();renderProjects();flash("Signed in with Google (mock).");}
+  catch(err){$("authErr").textContent=err.message;}
+});
+
+renderAuth(); renderProjects();
 </script>
 </body>
 </html>
